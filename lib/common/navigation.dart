@@ -55,7 +55,7 @@ class Navigation {
             PageLabel.onlineSupport,
           ),
         ),
-        modes: [NavigationItemMode.desktop], // 桌面端显示
+        modes: [NavigationItemMode.desktop, NavigationItemMode.mobile],
       ),
       const NavigationItem(
         icon: Icon(Icons.people),
