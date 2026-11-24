@@ -1,0 +1,151 @@
+name: QNDXX multi-platform build
+
+on:
+  push:
+    branches:
+      - main
+      - "qndxx/**"
+    tags:
+      - "qndxx-v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qndxx-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }} ${{ matrix.arch || '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            runner: ubuntu-22.04
+            arch: ""
+          - platform: windows
+            runner: windows-2022
+            arch: amd64
+          - platform: macos
+            runner: macos-13
+            arch: amd64
+          - platform: macos
+            runner: macos-latest
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 0
+
+      - name: Configure HTTPS for public Git submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git submodule sync --recursive
+          git submodule update --init --recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Set up Android SDK and NDK
+        if: matrix.platform == 'android'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        if: matrix.platform == 'android'
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;28.0.13004108"
+          echo "ANDROID_NDK=$ANDROID_SDK_ROOT/ndk/28.0.13004108" >> "$GITHUB_ENV"
+
+      - name: Install Windows packaging tools
+        if: matrix.platform == 'windows'
+        run: choco install innosetup --yes --no-progress
+
+      - name: Install macOS packaging tools
+        if: matrix.platform == 'macos'
+        run: npm install --global appdmg
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Generate XBoard SDK code
+        run: |
+          cd lib/sdk/flutter_xboard_sdk
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate application code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build application
+        run: |
+          if [ "${{ matrix.arch }}" = "" ]; then
+            dart setup.dart ${{ matrix.platform }} --env stable
+          else
+            dart setup.dart ${{ matrix.platform }} --arch ${{ matrix.arch }} --env stable
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qndxx-${{ matrix.platform }}-${{ matrix.arch || 'all-abis' }}
+          path: dist/**
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish QNDXX release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/qndxx-v')
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd release
+          find . -type f ! -name '*.sha256' -print0 | while IFS= read -r -d '' file; do
+            sha256sum "$file" > "${file}.sha256"
+          done
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: QNDXX ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release/**
