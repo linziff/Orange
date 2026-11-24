@@ -77,6 +77,13 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Set up Java 17 for Android SDK tools
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Set up Android SDK and NDK
         if: matrix.platform == 'android'
         uses: android-actions/setup-android@v3
