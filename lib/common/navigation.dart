@@ -4,7 +4,6 @@ import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/xboard/features/payment/pages/plans.dart';
 import 'package:fl_clash/xboard/features/subscription/pages/xboard_home_page.dart';
 import 'package:fl_clash/xboard/features/online_support/pages/online_support_page.dart';
-import 'package:fl_clash/xboard/features/online_support/providers/chat_provider.dart';
 import 'package:fl_clash/xboard/features/invite/pages/invite_page.dart';
 import 'package:fl_clash/xboard/features/shared/shared.dart';
 import 'package:flutter/material.dart';
