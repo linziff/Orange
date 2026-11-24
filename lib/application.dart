@@ -67,21 +67,31 @@ class ApplicationState extends ConsumerState<Application> {
       }
     });
     
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      // 先完成本地认证状态恢复，不能把它放在 Clash Core / VPN 初始化之后。
+      // Android 上 Core 初始化、恢复配置或 VPN 状态可能耗时；若先 await，
+      // 路由会一直认为用户未初始化并停留在 /loading。
+      _performQuickAuthWithDomainService();
+
       final currentContext = globalState.navigatorKey.currentContext;
       if (currentContext != null) {
         globalState.appController = AppController(currentContext, ref);
       }
-      await globalState.appController.init();
-      globalState.appController.initLink();
-      app?.initShortcuts();
-      
-      // ✅ 等待初始化完成后再执行快速认证
-      _performQuickAuthWithDomainService();
-      
-      // 启动后检查更新
-      _checkForUpdates();
-      
+
+      // Clash Core、VPN、偏好设置等启动任务放在认证恢复之后执行。
+      // 即使这些任务失败，也不能阻止登录页/主界面显示。
+      Future<void>(() async {
+        try {
+          await globalState.appController.init();
+          if (!mounted) return;
+          globalState.appController.initLink();
+          app?.initShortcuts();
+          _checkForUpdates();
+        } catch (e, stackTrace) {
+          debugPrint('[Application] 应用控制器初始化失败（不阻塞界面）: $e');
+          debugPrint('$stackTrace');
+        }
+      });
     });
   }
 
