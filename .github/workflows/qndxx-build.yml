@@ -82,15 +82,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK and NDK
-        if: matrix.platform == 'android'
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android NDK
+      - name: Install Android SDK packages
         if: matrix.platform == 'android'
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;28.0.13004108"
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;28.0.13004108"
           echo "ANDROID_NDK=$ANDROID_SDK_ROOT/ndk/28.0.13004108" >> "$GITHUB_ENV"
 
       - name: Install Windows packaging tools
