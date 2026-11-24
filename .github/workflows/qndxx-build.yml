@@ -50,10 +50,8 @@ jobs:
           submodules: false
           fetch-depth: 0
 
-      - name: Configure HTTPS for public Git submodules
+      - name: Initialize public Git submodules
         run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           git submodule sync --recursive
           git submodule update --init --recursive
 
