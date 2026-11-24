@@ -104,6 +104,10 @@ jobs:
         if: matrix.platform == 'macos'
         run: npm install --global appdmg
 
+      - name: Synchronize Go core modules
+        working-directory: core
+        run: go mod tidy
+
       - name: Install Flutter dependencies
         run: flutter pub get
 
