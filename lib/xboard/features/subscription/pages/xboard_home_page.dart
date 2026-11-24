@@ -97,7 +97,10 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
         leadingWidth: 120,
         leading: TextButton.icon(
           icon: const Icon(Icons.support_agent, size: 20),
-          label: Text(appLocalizations.onlineSupport),
+          label: Text(
+            appLocalizations.onlineSupport,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
           onPressed: () {
             // 移动端独有的按钮，使用 push 创建路由栈
             context.push('/support');
@@ -111,7 +114,10 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
         actions: [
           TextButton.icon(
             icon: const Icon(Icons.card_giftcard, size: 20),
-            label: Text(appLocalizations.xboardPlanInfo),
+            label: Text(
+            appLocalizations.xboardPlanInfo,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
             onPressed: () {
               // 移动端独有的按钮，使用 push 创建路由栈
               context.push('/plans');
