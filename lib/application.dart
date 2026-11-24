@@ -92,24 +92,9 @@ class ApplicationState extends ConsumerState<Application> {
       try {
         debugPrint('[Application] 开始快速认证检查...');
         
-        // ✅ 等待初始化完成
-        final initState = ref.read(initializationProvider);
-        if (!initState.isReady) {
-          debugPrint('[Application] 等待初始化完成...');
-          // 等待初始化完成（最多 30 秒）
-          final deadline = DateTime.now().add(const Duration(seconds: 30));
-          while (!ref.read(initializationProvider).isReady && 
-                 DateTime.now().isBefore(deadline)) {
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          
-          if (!ref.read(initializationProvider).isReady) {
-            debugPrint('[Application] 初始化超时，跳过快速认证');
-            return;
-          }
-        }
-        
-        // SDK 已初始化，执行快速认证
+        // 快速认证只读取本地 Token 和缓存，不等待远程域名/SDK 初始化。
+        // 这样无论远程配置是否可达，用户都能先进入登录页或已有缓存的首页。
+        // SDK 相关网络验证由后台初始化流程继续完成。
         final userNotifier = ref.read(xboardUserProvider.notifier);
         await userNotifier.quickAuth();
         
