@@ -4,7 +4,7 @@ xboard:
   provider: mihomo
   remote_config:
     sources:
-      - name: qndxx
+      - name: redirect
         url: https://toufq.com/speed/blob/main/config.json
         priority: 100
     max_retries: 3
