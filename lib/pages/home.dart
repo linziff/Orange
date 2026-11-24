@@ -215,7 +215,7 @@ class CommonNavigationBar extends ConsumerWidget {
                     destinations: navigationItems
                         .map(
                           (e) => NavigationRailDestination(
-                            icon: _buildIconWithBadge(e.label, e.icon, ref),
+                            icon: e.icon,
                             label: Text(
                               Intl.message(e.label.name),
                             ),
