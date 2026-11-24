@@ -71,6 +71,7 @@ dependencies:
   flutter_widget_from_html: ^0.17.1
   uuid: ^4.4.0
   web_socket_channel: ^3.0.3
+  flutter_inappwebview: ^6.1.5
   qr_flutter: ^4.1.0
   socks5_proxy: ^2.1.1
   flutter_xboard_sdk:
