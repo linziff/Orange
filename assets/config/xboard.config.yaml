@@ -1,0 +1,18 @@
+# QNDXX XBoard runtime configuration
+# The remote endpoint is managed independently from the application binary.
+xboard:
+  provider: mihomo
+  remote_config:
+    sources:
+      - name: qndxx
+        url: https://toufq.com/speed/blob/main/config.json
+        priority: 100
+    max_retries: 3
+    timeout_seconds: 15
+    retry_delay_seconds: 2
+  subscription:
+    prefer_encrypt: false
+  log:
+    enabled: true
+    level: info
+    prefix: "[QNDXX]"
