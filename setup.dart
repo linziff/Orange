@@ -552,7 +552,7 @@ class BuildCommand extends Command {
             .where((element) => arch == null ? true : element == arch)
             .map((e) => targetMap[e])
             .toList();
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           targets: "apk",
           args:
@@ -579,5 +579,5 @@ main(args) async {
   runner.addCommand(BuildCommand(target: Target.linux));
   runner.addCommand(BuildCommand(target: Target.windows));
   runner.addCommand(BuildCommand(target: Target.macos));
-  runner.run(args);
+  await runner.run(args);
 }
