@@ -79,7 +79,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  test: ^1.24.0
   flutter_lints: ^5.0.0
   ffigen: ^18.1.0
   json_serializable: ^6.7.1
