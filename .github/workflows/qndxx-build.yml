@@ -33,7 +33,7 @@ jobs:
             runner: windows-2022
             arch: amd64
           - platform: macos
-            runner: macos-13
+            runner: macos-14
             arch: amd64
           - platform: macos
             runner: macos-latest
