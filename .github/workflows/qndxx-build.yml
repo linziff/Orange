@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: qndxx-build-${{ github.ref }}
+  group: qndxx-build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
             runner: windows-2022
             arch: amd64
           - platform: macos
-            runner: macos-14
+            runner: macos-15-intel
             arch: amd64
           - platform: macos
             runner: macos-latest
