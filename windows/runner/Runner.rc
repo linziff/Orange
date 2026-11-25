@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "QNDXX" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "QNDXX" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2023 com.follow. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 qndxx.app. All rights reserved." "\0"
             VALUE "OriginalFilename", "QNDXX.exe" "\0"
             VALUE "ProductName", "QNDXX" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
