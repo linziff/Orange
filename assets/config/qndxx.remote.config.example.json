@@ -1,0 +1,60 @@
+{
+  "panelType": "xboard",
+  "panels": {
+    "QNDXX": [
+      {
+        "url": "https://www.toufq.com",
+        "description": "面板-1"
+      },
+      {
+        "url": "https://www.qndxx.uk",
+        "description": "面板-2"
+      }
+    ]
+  },
+  "update": [
+    {
+      "url": "https://update1.duruni.uk",
+      "description": "主更新服务器"
+    },
+    {
+      "url": "https://update2.duruni.uk",
+      "description": "备用更新服务器"
+    }
+  ],
+  "onlineSupport": [
+    {
+      "url": "https://client.crisp.chat",
+      "description": "QNDXX Crisp 在线客服",
+      "crispWebsiteId": "92f20590-a75f-4b50-a521-6d5fc7a356dd"
+    }
+  ],
+  "subscription": {
+    "urls": [
+      {
+        "url": "https://www.toufq.com",
+        "description": "订阅服务器-1",
+        "endpoints": {
+          "v2": {
+            "path": "/api/v2/subscription-encrypt/{token}",
+            "requiresToken": true,
+            "method": "GET",
+            "description": "V2 加密订阅接口"
+          }
+        }
+      },
+      {
+        "url": "https://www.qndxx.uk",
+        "description": "订阅服务器-2",
+        "endpoints": {
+          "v2": {
+            "path": "/api/v2/subscription-encrypt/{token}",
+            "requiresToken": true,
+            "method": "GET",
+            "description": "V2 加密订阅接口"
+          }
+        }
+      }
+    ]
+  }
+}
