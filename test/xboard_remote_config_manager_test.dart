@@ -69,6 +69,27 @@ void main() {
     });
   });
 
+  test('falls back to the configured normal endpoint when encryption is preferred but unavailable', () {
+    final urlInfo = SubscriptionUrlInfo.fromJson({
+      'url': 'https://panel.example',
+      'description': 'normal-only panel',
+      'endpoints': {
+        'v1': {
+          'path': '/api/v1/subscription/{token}',
+          'requiresToken': true,
+          'method': 'GET',
+          'description': 'plain',
+          'isEncrypt': false,
+        },
+      },
+    });
+
+    expect(
+      urlInfo.buildSubscriptionUrl('token', preferEncrypt: true),
+      'https://panel.example/api/v1/subscription/token?flag=flclash',
+    );
+  });
+
   test('respects an explicit non-encrypted v2 endpoint flag', () {
     final subscription = SubscriptionInfo.fromJson({
       'enableEncrypt': true,
