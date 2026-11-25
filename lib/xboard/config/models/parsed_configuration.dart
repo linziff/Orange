@@ -121,6 +121,9 @@ class ParsedConfiguration {
   /// 转换为JSON
   Map<String, dynamic> toJson() {
     return {
+      // Preserve the required discriminator so serialized configurations can
+      // be parsed again without silently losing the XBoard/V2Board type.
+      'panelType': panelType,
       'panels': panels.toJson(),
       'proxy': proxies.map((e) => e.toJson()).toList(),
       'ws': webSockets.map((e) => e.toJson()).toList(),
