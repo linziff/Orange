@@ -82,7 +82,8 @@ jobs:
         if: matrix.platform == 'Android'
         shell: bash
         run: |
-          NDK_PATH="$(find "$ANDROID_SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          NDK_PATH="$(find "$SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           test -n "$NDK_PATH"
           echo "ANDROID_NDK=$NDK_PATH" >> "$GITHUB_ENV"
 
