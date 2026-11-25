@@ -161,7 +161,7 @@ class RedirectConfigSource implements ConfigSource {
   @override
   Future<ConfigResult<Map<String, dynamic>>> fetchConfig() async {
     try {
-      _logger.info('开始获取重定向配置源: $redirectUrl');
+      _logger.info('开始获取主远程配置（地址已隐藏）');
       final rawData = await _httpClient.getString(redirectUrl, timeout: timeout);
 
       if (rawData == null || rawData.trim().isEmpty) {
