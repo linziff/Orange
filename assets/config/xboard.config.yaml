@@ -35,6 +35,9 @@ xboard:
   security:
     obfuscation_prefix: ""
     user_agents:
+      # Must match the backend's Caddy/API authentication User-Agent.
+      # Keep empty until the real backend value is supplied; do not use the example placeholder.
+      api_encrypted: ""
       domain_racing_test: QNDXX/5.0.1 (Domain Racing Test)
 
   log:
