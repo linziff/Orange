@@ -2,8 +2,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fl_clash/xboard/config/core/config_settings.dart';
 import 'package:fl_clash/xboard/config/fetchers/remote_config_manager.dart';
 import 'package:fl_clash/xboard/config/models/subscription_info.dart';
+import 'package:fl_clash/xboard/config/parsers/configuration_parser.dart';
 
 void main() {
+  test('parses the QNDXX remote JSON provider and panelType', () {
+    final parsed = ConfigurationParser().parseFromJson({
+      'panelType': 'xboard',
+      'panels': {
+        'QNDXX': [
+          {
+            'url': 'https://www.toufq.com',
+            'description': '面板-1',
+          },
+          {
+            'url': 'https://www.qndxx.uk',
+            'description': '面板-2',
+          },
+        ],
+      },
+      'update': [],
+      'onlineSupport': [],
+      'subscription': {
+        'urls': [],
+      },
+    }, 'QNDXX');
+
+    expect(parsed.panelType, 'xboard');
+    expect(parsed.panels.getCurrentProviderPanels().length, 2);
+  });
+
   group('XBoard subscription endpoint preference', () {
     test('selects v1 when encryption is not preferred and v2 when preferred', () {
       final subscription = SubscriptionInfo.fromJson({
