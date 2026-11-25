@@ -28,7 +28,7 @@ void main() {
     }, 'QNDXX');
 
     expect(parsed.panelType, 'xboard');
-    expect(parsed.panels.getCurrentProviderPanels().length, 2);
+    expect(parsed.panels.currentProviderPanels.length, 2);
   });
 
   group('XBoard subscription endpoint preference', () {
