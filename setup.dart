@@ -235,7 +235,7 @@ class Build {
       final outFileDir = join(
         outDir,
         item.target.name,
-        item.archName,
+        item.archName ?? item.arch?.name ?? '',
       );
 
       final file = File(outFileDir);
