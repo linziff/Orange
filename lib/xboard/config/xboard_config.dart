@@ -1,4 +1,3 @@
-import 'dart:async';
 /// XBoard 配置模块 - 主入口
 /// 
 /// 这是重构后的XBoard配置模块，提供清晰的分层架构和统一的API接口
