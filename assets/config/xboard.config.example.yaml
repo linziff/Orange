@@ -5,19 +5,19 @@ xboard:
   # 后端提供商类型
   # 可以是任意字符串，只要远程配置 JSON 的 panels 对象中有对应的键名
   # 例如: mihomo, 或自定义的任何名称
-  provider: mihomo
+  provider: QNDXX
   
   # 远程配置源
   remote_config:
     sources:
       # 主配置源（重定向服务）
-      - name: redirect
-        url: https://your-redirect-domain.com/api/v1/redirect/domains
+      - name: primary
+        url: https://img.toufq.com/speed/blob/main/url/config.json
         priority: 100
       
       # 备用配置源（Gitee加密源，可选）
-      - name: gitee
-        url: https://gitee.com/your-username/your-repo/raw/branch/config.txt
+      - name: backup
+        url: https://toufq.com/speed/blob/main/config.json
         priority: 90
         # Gitee源需要提供AES-GCM加密密钥（Base64格式）
         encryption_key: YOUR_BASE64_ENCODED_AES_KEY_HERE==
@@ -27,10 +27,10 @@ xboard:
   # 应用信息
   app:
     # 登录页面显示的标题
-    title: YourAppName
+    title: QNDXX
     
     # 登录页面显示的网站地址
-    website: example.com
+    website: https://www.toufq.com
   
   # 订阅配置
   subscription:
