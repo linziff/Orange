@@ -19,7 +19,7 @@ jobs:
             arch: all
             os: ubuntu-latest
             command: flutter build apk --release
-            artifact: build/app/outputs/flutter-apk/app-release.apk
+            artifact: build/app/outputs/flutter-apk/
             artifact_name: QNDXX-Android-5.2.1
 
           - platform: Windows
@@ -34,8 +34,8 @@ jobs:
           - platform: Windows
             arch: arm64
             os: windows-11-arm
-            generator: Visual Studio 18 2026
-            flutter_arch: arm64
+            generator: Visual Studio 17 2022
+            flutter_arch: x64
             command: flutter build windows --release
             artifact: build/windows/arm64/runner/Release
             artifact_name: QNDXX-Windows-arm64-5.2.1
@@ -73,6 +73,8 @@ jobs:
       - name: Setup Android SDK and pinned NDK
         if: matrix.platform == 'Android'
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install Android SDK components
         if: matrix.platform == 'Android'
@@ -163,6 +165,19 @@ jobs:
       - name: Build
         shell: bash
         run: ${{ matrix.command }}
+
+      - name: Build Android split APKs
+        if: matrix.platform == 'Android'
+        shell: bash
+        run: |
+          APK_DIR="build/app/outputs/flutter-apk"
+          mkdir -p "$APK_DIR"
+          cp "$APK_DIR/app-release.apk" "$APK_DIR/QNDXX-Android-universal-5.2.1.apk"
+          flutter build apk --release --split-per-abi
+          cp "$APK_DIR/app-armeabi-v7a-release.apk" "$APK_DIR/QNDXX-Android-v7-armeabi-v7a-5.2.1.apk"
+          cp "$APK_DIR/app-arm64-v8a-release.apk" "$APK_DIR/QNDXX-Android-v8-arm64-v8a-5.2.1.apk"
+          cp "$APK_DIR/app-x86_64-release.apk" "$APK_DIR/QNDXX-Android-x86_64-5.2.1.apk"
+          ls -lh "$APK_DIR"/*.apk
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
