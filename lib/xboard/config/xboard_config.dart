@@ -154,13 +154,11 @@ class XBoardConfig {
   }) async {
     final config = settings ?? ConfigSettings(currentProvider: provider);
     
-    // 只同步注册配置服务，不在 runApp 前等待网络请求。
-    // 首次远程配置由域名检查流程在 UI 首帧之后刷新。
     _instance = await ModuleInitializer.createConfigAccessor(
       settings: config,
-      autoWarmUp: false,
+      autoWarmUp: true,
     );
-
+    
     // 创建配置提供者实例
     _provider = _XBoardConfigProvider(_instance!);
   }
