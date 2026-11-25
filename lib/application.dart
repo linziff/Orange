@@ -85,50 +85,28 @@ class ApplicationState extends ConsumerState<Application> {
     });
   }
 
-  /// 使用新域名服务架构进行快速认证检查
+  /// Perform local cached-token authentication independently of network startup.
+  /// Domain racing and SDK initialization continue in the background; they must
+  /// not hold the router on its loading page when a panel endpoint is offline.
   void _performQuickAuthWithDomainService() {
-    // 等待初始化完成后再检查
     Future.microtask(() async {
       try {
-        debugPrint('[Application] 开始快速认证检查...');
-        
-        // ✅ 等待初始化完成
-        final initState = ref.read(initializationProvider);
-        if (!initState.isReady) {
-          debugPrint('[Application] 等待初始化完成...');
-          // 等待初始化完成（最多 30 秒）
-          final deadline = DateTime.now().add(const Duration(seconds: 30));
-          while (!ref.read(initializationProvider).isReady && 
-                 DateTime.now().isBefore(deadline)) {
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          
-          if (!ref.read(initializationProvider).isReady) {
-            debugPrint('[Application] 初始化超时，跳过快速认证');
-            return;
-          }
-        }
-        
-        // SDK 已初始化，执行快速认证
+        debugPrint('[Application] 开始本地快速认证检查...');
         final userNotifier = ref.read(xboardUserProvider.notifier);
         await userNotifier.quickAuth();
-        
-        // 强制刷新UI，确保路由能够响应最新的认证状态
+
         if (mounted) {
           setState(() {});
         }
-        
-        debugPrint('[Application] 快速认证检查完成');
+        debugPrint('[Application] 本地快速认证检查完成');
       } catch (e) {
-        debugPrint('[Application] 快速认证检查失败: $e');
-        // 即使认证检查失败，也要确保UI能正常显示
+        debugPrint('[Application] 本地快速认证检查失败: $e');
         if (mounted) {
           setState(() {});
         }
       }
     });
   }
-
 
   /// 检查应用更新
   void _checkForUpdates() {
