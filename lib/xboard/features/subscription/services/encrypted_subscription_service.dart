@@ -64,8 +64,8 @@ class EncryptedSubscriptionService {
       );
 
     } catch (e) {
-      _logger.error('从登录数据获取订阅失败', e);
-      return SubscriptionResult.failure('从登录数据获取订阅失败: $e');
+      _logger.error('从登录数据获取订阅失败（敏感信息已隐藏）');
+      return SubscriptionResult.failure('从登录数据获取订阅失败，请稍后重试');
     }
   }
 
@@ -95,7 +95,7 @@ class EncryptedSubscriptionService {
       
       return null;
     } catch (e) {
-      _logger.error('提取订阅token失败', e);
+      _logger.error('提取订阅凭据失败（详细信息已隐藏）');
       return null;
     }
   }
@@ -162,8 +162,8 @@ class EncryptedSubscriptionService {
         tryFallback: true, // 允许尝试备用密钥
       );
       if (!decryptResult.success) {
-        _logger.error('[订阅服务] 💥 解密失败: ${decryptResult.message}');
-        return SubscriptionResult.failure('解密失败: ${decryptResult.message}');
+        _logger.error('[订阅服务] 解密失败（密钥及响应内容已隐藏）');
+        return SubscriptionResult.failure('订阅解密失败，请检查客户端配置');
       }
 
       _logger.info('[订阅服务] 解密成功，解密内容长度: ${decryptResult.content.length}');
@@ -182,8 +182,8 @@ class EncryptedSubscriptionService {
       );
 
     } catch (e) {
-      _logger.error('处理过程异常', e);
-      return SubscriptionResult.failure('获取加密订阅异常: $e');
+      _logger.error('订阅处理异常（详细信息已隐藏）');
+      return SubscriptionResult.failure('获取加密订阅异常，请稍后重试');
     }
   }
 
@@ -220,7 +220,7 @@ class EncryptedSubscriptionService {
 
           _logger.debug('[数据获取] ✅ 响应成功，数据长度: ${responseBody.length}');
           if (subscriptionUserInfo != null) {
-            _logger.debug('[数据获取] 📊 获取到订阅信息: $subscriptionUserInfo');
+            _logger.debug('[数据获取] 已接收订阅状态信息（内容已隐藏）');
           }
 
           // 尝试解析JSON响应
@@ -264,12 +264,12 @@ class EncryptedSubscriptionService {
         }
       } catch (e) {
         if (attempt < maxRetries) {
-          _logger.warning('[数据获取] ⚠️ 请求异常: $e，${attempt * 2}秒后进行第${attempt + 1}次重试...');
+          _logger.warning('[数据获取] 请求异常（详细信息已隐藏），${attempt * 2}秒后进行第${attempt + 1}次重试...');
           await Future.delayed(Duration(seconds: attempt * 2));
           continue;
         } else {
-          _logger.error('[数据获取] 💥 请求最终异常: $e，已达到最大重试次数');
-          return DataResult.failure('请求异常: $e');
+          _logger.error('[数据获取] 请求最终异常（详细信息已隐藏），已达到最大重试次数');
+          return DataResult.failure('请求异常，请稍后重试');
         }
       }
     }
@@ -326,7 +326,7 @@ class EncryptedSubscriptionService {
       );
 
     } catch (e) {
-      return SubscriptionResult.failure('普通订阅获取失败: $e');
+      return SubscriptionResult.failure('普通订阅获取失败，请稍后重试');
     }
   }
 
@@ -364,7 +364,7 @@ class EncryptedSubscriptionService {
           return encryptedResult;
         }
         
-        _logger.warning('加密订阅失败，尝试普通订阅: ${encryptedResult.error}');
+        _logger.warning('加密订阅失败，尝试普通订阅（详细信息已隐藏）');
         
         // 回退到普通订阅
         return await fallbackToNormalSubscription(token, enableRace: enableRace);
@@ -373,7 +373,7 @@ class EncryptedSubscriptionService {
         return await fallbackToNormalSubscription(token, enableRace: enableRace);
       }
     } catch (e) {
-      return SubscriptionResult.failure('智能订阅获取失败: $e');
+      return SubscriptionResult.failure('智能订阅获取失败，请稍后重试');
     }
   }
 
@@ -405,7 +405,7 @@ class EncryptedSubscriptionService {
         preferEncrypt: preferEncrypt,
       );
     } catch (e) {
-      _logger.error('[竞速增强] 竞速获取失败，回退到标准方式', e);
+      _logger.error('[竞速增强] 竞速获取失败，回退到标准方式（详细信息已隐藏）');
       
       // 竞速失败时回退到标准方式
       return await getEncryptedSubscriptionFromLogin(preferEncrypt: preferEncrypt);
@@ -438,7 +438,7 @@ class EncryptedSubscriptionService {
         preferEncrypt: preferEncrypt,
       );
     } catch (e) {
-      _logger.error('[竞速增强] 竞速获取失败，回退到标准方式', e);
+      _logger.error('[竞速增强] 竞速获取失败，回退到标准方式（详细信息已隐藏）');
       
       // 竞速失败时回退到标准方式
       return await getEncryptedSubscription(token, preferEncrypt: preferEncrypt);
