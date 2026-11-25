@@ -35,7 +35,8 @@ jobs:
             arch: arm64
             os: windows-11-arm
             generator: Visual Studio 17 2022
-            flutter_arch: x64
+            flutter_arch: arm64
+            flutter_version: '3.44.0'
             command: flutter build windows --release
             artifact: build/windows/arm64/runner/Release
             artifact_name: QNDXX-Windows-arm64-5.2.1
@@ -85,11 +86,11 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.8'
+          flutter-version: ${{ matrix.flutter_version || '3.32.8' }}
           channel: stable
           cache: true
-          # Windows ARM runner must use the x64 Flutter host SDK; other jobs
-          # use their native host architecture.
+          # Flutter 3.44.0 is the first stable release with native Windows ARM64
+          # Dart/engine host binaries. Keep the legacy SDK on other build lanes.
           architecture: ${{ matrix.flutter_arch || (matrix.platform == 'macOS' && matrix.arch == 'arm64' && 'arm64') || 'x64' }}
 
       - name: Flutter version
@@ -166,8 +167,37 @@ jobs:
           cp "$CORE_SOURCE" "$CORE_TARGET"
 
       - name: Build
+        if: matrix.platform != 'Android'
         shell: bash
         run: ${{ matrix.command }}
+ 
+      - name: Verify Windows executable and native DLL architectures
+        if: matrix.platform == 'Windows'
+        shell: pwsh
+        run: |
+          $dir = "${{ matrix.artifact }}"
+          $expected = if ("${{ matrix.arch }}" -eq "arm64") { 0xAA64 } else { 0x8664 }
+          function Get-PeMachine([string]$path) {
+            $stream = [System.IO.File]::OpenRead($path)
+            try {
+              $reader = [System.IO.BinaryReader]::new($stream)
+              $stream.Position = 0x3C
+              $peOffset = $reader.ReadInt32()
+              $stream.Position = $peOffset
+              if ($reader.ReadUInt32() -ne 0x00004550) { throw "Invalid PE file: $path" }
+              return $reader.ReadUInt16()
+            } finally { $stream.Dispose() }
+          }
+          $required = @("QNDXX.exe", "flutter_windows.dll", "FlClashCore.exe", "FlClashHelperService.exe")
+          foreach ($name in $required) {
+            $path = Join-Path $dir $name
+            if (!(Test-Path $path)) { throw "Missing required runtime file: $name" }
+            $machine = Get-PeMachine $path
+            if ($machine -ne $expected) {
+              throw "$name has PE machine 0x$('{0:X4}' -f $machine), expected 0x$('{0:X4}' -f $expected)"
+            }
+            Write-Host "$name architecture verified: 0x$('{0:X4}' -f $machine)"
+          }
 
       - name: Build and verify Android ABI APKs
         if: matrix.platform == 'Android'
@@ -225,8 +255,12 @@ jobs:
           test -n "$CORE" && test -x "$CORE"
           EXPECTED="${{ matrix.arch == 'amd64' && 'x86_64' || 'arm64' }}"
           echo "App: $APP"
+          APP_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")"
+          RUNNER="$APP/Contents/MacOS/$APP_EXECUTABLE"
+          test -x "$RUNNER"
           echo "Runner architectures:"
-          lipo -archs "$APP/Contents/MacOS/"*
+          lipo -archs "$RUNNER" | tee "$RUNNER.archs"
+          grep -qw "$EXPECTED" "$RUNNER.archs"
           echo "Core architectures:"
           lipo -archs "$CORE"
           lipo -archs "$CORE" | grep -qw "$EXPECTED"
