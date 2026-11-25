@@ -25,7 +25,7 @@ jobs:
           - platform: Windows
             arch: amd64
             os: windows-2022
-            generator: Visual Studio 17 2022
+            generator: Visual Studio 18 2026
             flutter_arch: x64
             command: flutter build windows --release
             artifact: build/windows/x64/runner/Release
