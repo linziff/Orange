@@ -11,4 +11,4 @@ PRODUCT_NAME = QNDXX
 PRODUCT_BUNDLE_IDENTIFIER = qndxx.app
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 QNDXX. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 qndxx.app. All rights reserved.
