@@ -204,8 +204,8 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
       ),
     );
   }
-  /// Header actions share one fixed box and one style so their visual
-  /// dimensions remain identical on different Android screen densities.
+  /// Header actions share equal flexible widths and identical heights,
+  /// keeping support and plan buttons aligned on narrow and wide screens.
   Widget _buildHeaderAction({
     required IconData icon,
     required String label,
