@@ -92,23 +92,31 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
     final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
     
     return Scaffold(
-      appBar: isDesktop ? null : AppBar(
-        automaticallyImplyLeading: false,
-        leadingWidth: 144,
-        leading: _buildHeaderAction(
-          icon: Icons.support_agent,
-          label: appLocalizations.onlineSupport,
-          onPressed: () => context.push('/support'),
-        ),
-        actions: [
-          _buildHeaderAction(
-            icon: Icons.card_giftcard,
-            label: appLocalizations.xboardPlanInfo,
-            onPressed: () => context.push('/plans'),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: isDesktop
+          ? null
+          : AppBar(
+              automaticallyImplyLeading: false,
+              titleSpacing: 12,
+              title: Row(
+                children: [
+                  Expanded(
+                    child: _buildHeaderAction(
+                      icon: Icons.support_agent,
+                      label: appLocalizations.onlineSupport,
+                      onPressed: () => context.push('/support'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildHeaderAction(
+                      icon: Icons.card_giftcard,
+                      label: appLocalizations.xboardPlanInfo,
+                      onPressed: () => context.push('/plans'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
       body: Consumer(
         builder: (_, ref, __) {
           // 获取屏幕高度并计算自适应间距
@@ -204,19 +212,18 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
     required VoidCallback onPressed,
   }) {
     return SizedBox(
-      width: 136,
       height: 40,
-      child: TextButton.icon(
-        icon: Icon(icon, size: 18),
-        label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          fixedSize: const Size(136, 40),
-          minimumSize: const Size(136, 40),
-          maximumSize: const Size(136, 40),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.standard,
+      child: SizedBox.expand(
+        child: TextButton.icon(
+          icon: Icon(icon, size: 18),
+          label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.standard,
+          ),
         ),
       ),
     );
