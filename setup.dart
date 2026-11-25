@@ -149,10 +149,24 @@ class Build {
   static String _getCc(BuildItem buildItem) {
     final environment = Platform.environment;
     if (buildItem.target == Target.android) {
-      final ndk = environment["ANDROID_NDK"];
-      assert(ndk != null);
+      // GitHub Actions and local Android SDK installations expose the NDK
+      // through different environment variable names. Prefer an explicit NDK
+      // path, but accept the standard aliases as well.
+      final ndk = environment["ANDROID_NDK"] ??
+          environment["ANDROID_NDK_HOME"] ??
+          environment["ANDROID_NDK_ROOT"];
+      if (ndk == null || ndk.trim().isEmpty) {
+        throw StateError(
+          "Android NDK path is not configured. Set ANDROID_NDK, "
+          "ANDROID_NDK_HOME, or ANDROID_NDK_ROOT.",
+        );
+      }
+      final ndkDirectory = Directory(ndk);
+      if (!ndkDirectory.existsSync()) {
+        throw StateError("Android NDK directory does not exist: $ndk");
+      }
       final prebuiltDir =
-          Directory(join(ndk!, "toolchains", "llvm", "prebuilt"));
+          Directory(join(ndkDirectory.path, "toolchains", "llvm", "prebuilt"));
       final hostToolchain = Platform.isLinux
           ? "linux-x86_64"
           : Platform.isMacOS
