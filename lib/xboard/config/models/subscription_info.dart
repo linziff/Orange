@@ -176,11 +176,15 @@ class SubscriptionInfo {
   String? buildSubscriptionUrl(String token, {bool forceEncrypt = false}) {
     if (urls.isEmpty) return null;
 
-    final targetUrl = forceEncrypt || enableEncrypt 
+    // The local xboard.subscription.prefer_encrypt setting selects whether
+    // the encrypted endpoint is preferred. The remote enableEncrypt flag can
+    // still disable encryption globally.
+    final useEncrypt = forceEncrypt && enableEncrypt;
+    final targetUrl = useEncrypt
         ? firstEncryptUrl ?? urls.first
         : urls.first;
 
-    return targetUrl.buildSubscriptionUrl(token, preferEncrypt: enableEncrypt);
+    return targetUrl.buildSubscriptionUrl(token, preferEncrypt: useEncrypt);
   }
 
   /// 转换为JSON
