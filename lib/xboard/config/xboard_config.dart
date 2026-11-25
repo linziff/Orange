@@ -83,6 +83,7 @@ class _XBoardConfigProvider implements ConfigProviderInterface {
   
   @override
   Future<String?> getFastestPanelUrl() async {
+    await XBoardConfig.waitForRemoteConfig();
     final panelUrls = getAllPanelUrls();
     if (panelUrls.isEmpty) return null;
     
