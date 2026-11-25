@@ -153,18 +153,14 @@ class XBoardConfig {
     ConfigSettings? settings,
   }) async {
     final config = settings ?? ConfigSettings(currentProvider: provider);
-
-    // 先完成本地模块注册，不在 runApp 前等待远程网络请求。
+    
     _instance = await ModuleInitializer.createConfigAccessor(
       settings: config,
-      autoWarmUp: false,
+      autoWarmUp: true,
     );
-
+    
     // 创建配置提供者实例
     _provider = _XBoardConfigProvider(_instance!);
-
-    // 远程配置在后台预热；需要域名的调用会等待此任务完成。
-    _warmUpFuture = _instance!.refreshConfiguration();
   }
   
   /// 获取配置提供者接口（供SDK层使用）
@@ -188,7 +184,6 @@ class XBoardConfig {
     _instance?.dispose();
     _instance = null;
     _provider = null;
-    _warmUpFuture = null;
     ModuleInitializer.reset();
   }
   
@@ -209,9 +204,6 @@ class XBoardConfig {
   /// 获取第一个面板URL
   static String? get panelUrl => _accessor.getFirstPanelUrl();
 
-  // 远程配置后台预热任务；避免阻塞 Flutter 首屏启动。
-  static Future<void>? _warmUpFuture;
-
   // 缓存正在进行的竞速任务
   static Future<String?>? _racingFuture;
 
@@ -221,12 +213,6 @@ class XBoardConfig {
   /// 如果所有URL都失败，则返回null
   /// 注意：返回的URL会强制转换为HTTPS格式，以适配SDK的私有证书配置
   static Future<String?> getFastestPanelUrl() async {
-    // 等待后台远程配置预热完成后再读取域名列表。
-    final warmUp = _warmUpFuture;
-    if (warmUp != null) {
-      await warmUp;
-    }
-
     // 如果已经有正在进行的竞速，直接返回该结果（请求合并）
     if (_racingFuture != null) {
       return _racingFuture;
