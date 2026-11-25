@@ -263,37 +263,50 @@ class RemoteConfigSource {
 
   /// 从配置源获取数据
   Future<ConfigResult<Map<String, dynamic>>> fetch() async {
+    HttpClient? client;
     try {
-      final client = HttpClient();
-      client.connectionTimeout = timeout;
-
       final uri = Uri.parse(url);
-      final request = await client.getUrl(uri);
-      
-      // 添加请求头
-      if (headers != null) {
-        headers!.forEach((key, value) {
-          request.headers.add(key, value);
-        });
+      if ((uri.scheme != 'https' && uri.scheme != 'http') ||
+          uri.host.isEmpty) {
+        return ConfigResult.failure('Invalid config source URL', name);
       }
 
-      final response = await request.close();
-      
-      if (response.statusCode == 200) {
-        final responseBody = await response.transform(utf8.decoder).join();
-        final data = json.decode(responseBody) as Map<String, dynamic>;
-        
-        client.close();
-        return ConfigResult.success(data, name);
-      } else {
-        client.close();
+      client = HttpClient()..connectionTimeout = timeout;
+      final request = await client.getUrl(uri).timeout(timeout);
+
+      // 添加请求头
+      headers?.forEach((key, value) {
+        request.headers.add(key, value);
+      });
+
+      final response = await request.close().timeout(timeout);
+      if (response.statusCode != HttpStatus.ok) {
+        // Drain the response before closing the client to release the socket.
+        await response.drain<void>().timeout(timeout);
         return ConfigResult.failure(
           'HTTP ${response.statusCode}: ${response.reasonPhrase}',
           name,
         );
       }
+
+      final responseBody = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(timeout);
+      final decoded = json.decode(responseBody);
+      if (decoded is! Map<String, dynamic>) {
+        return ConfigResult.failure(
+          'Invalid config JSON: expected an object',
+          name,
+        );
+      }
+      return ConfigResult.success(decoded, name);
+    } on FormatException catch (e) {
+      return ConfigResult.failure('Invalid config JSON: $e', name);
     } catch (e) {
       return ConfigResult.failure('Network error: $e', name);
+    } finally {
+      client?.close(force: true);
     }
   }
 }
