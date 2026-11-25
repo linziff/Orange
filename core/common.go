@@ -251,16 +251,22 @@ func updateConfig(params *UpdateParams) {
 func setupConfig(params *SetupParams) error {
 	runLock.Lock()
 	defer runLock.Unlock()
-	var err error
-	defaultTestURL = params.TestURL
-	currentConfig, err = config.ParseRawConfig(params.Config)
+
+	// Parse first and only replace the active configuration after validation.
+	// Falling back to the default profile on an error silently drops every
+	// user proxy and hides the actual incompatibility (for example, an
+	// unsupported VLESS transport option).
+	parsedConfig, err := config.ParseRawConfig(params.Config)
 	if err != nil {
-		currentConfig, _ = config.ParseRawConfig(config.DefaultRawConfig())
+		return err
 	}
+
+	currentConfig = parsedConfig
+	defaultTestURL = params.TestURL
 	hub.ApplyConfig(currentConfig)
 	patchSelectGroup(params.SelectedMap)
 	updateListeners()
-	return err
+	return nil
 }
 
 func UnmarshalJson(data []byte, v any) error {
