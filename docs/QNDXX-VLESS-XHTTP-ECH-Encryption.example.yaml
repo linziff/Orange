@@ -1,0 +1,32 @@
+# QNDXX VLESS + TLS + XHTTP + ECH + VLESS Encryption 示例
+# 该配置示例使用 Mihomo 原生字段。请将所有 YOUR_* 占位符替换为服务端实际参数。
+# 注意：encryption 是 VLESS Encryption 字符串，不是 TLS cipher。
+
+proxies:
+  - name: "QNDXX-VLESS-XHTTP-ECH"
+    type: vless
+    server: YOUR_SERVER_HOST
+    port: 443
+    uuid: YOUR_VLESS_UUID
+    udp: true
+
+    tls: true
+    servername: YOUR_TLS_SERVER_NAME
+    alpn:
+      - h2
+    client-fingerprint: chrome
+
+    # VLESS Encryption：必须与服务端生成的客户端参数一致。
+    encryption: "YOUR_VLESS_ENCRYPTION_STRING"
+
+    # ECH：若服务端要求指定 ECH DNS 查询名称，请替换 query-server-name。
+    ech-opts:
+      enable: true
+      query-server-name: "cloudflare-ech.com"
+
+    # XHTTP 传输层。
+    network: xhttp
+    xhttp-opts:
+      host: YOUR_XHTTP_HOST
+      path: "/YOUR_XHTTP_PATH"
+      mode: "auto"
