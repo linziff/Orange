@@ -24,7 +24,6 @@ class CrispSupportView extends StatefulWidget {
 class _CrispSupportViewState extends State<CrispSupportView> {
   static const _loadTimeout = Duration(seconds: 25);
 
-  InAppWebViewController? _controller;
   Timer? _timeoutTimer;
   bool _isLoading = true;
   bool _hasError = false;
@@ -123,7 +122,6 @@ class _CrispSupportViewState extends State<CrispSupportView> {
       _isLoading = true;
       _hasError = false;
       _progress = 0;
-      _controller = null;
     });
     _startLoadTimeout();
   }
@@ -180,16 +178,15 @@ class _CrispSupportViewState extends State<CrispSupportView> {
               transparentBackground: false,
               mediaPlaybackRequiresUserGesture: false,
             ),
-            onWebViewCreated: (controller) async {
-              _controller = controller;
-              await controller.addJavaScriptHandler(
+            onWebViewCreated: (controller) {
+              controller.addJavaScriptHandler(
                 handlerName: 'crispLoaded',
                 callback: (_) {
                   _markReady();
                   return true;
                 },
               );
-              await controller.addJavaScriptHandler(
+              controller.addJavaScriptHandler(
                 handlerName: 'crispLoadFailed',
                 callback: (_) {
                   _showError();
