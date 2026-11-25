@@ -3,6 +3,7 @@ import 'package:fl_clash/xboard/features/auth/auth.dart';
 import 'package:fl_clash/xboard/services/services.dart';
 import 'package:fl_clash/xboard/features/profile/providers/profile_import_provider.dart';
 import 'package:fl_clash/xboard/core/core.dart';
+import 'package:fl_clash/xboard/config/xboard_config.dart';
 import 'package:fl_clash/xboard/domain/domain.dart';
 import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart' hide XBoardException;
 import 'package:fl_clash/xboard/adapter/state/user_state.dart';
@@ -93,10 +94,22 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
     }
   }
   void _backgroundTokenValidation() {
-    Future.delayed(const Duration(milliseconds: 1000), () async {
+    Future<void>(() async {
       try {
+        // The SDK cannot validate a token until remote XBoard config and
+        // domain selection are ready. Do not mistake startup/network failure
+        // for an expired credential.
+        if (!XBoardConfig.isInitialized) {
+          _logger.info('跳过后台Token验证：XBoard配置尚未初始化');
+          return;
+        }
+        if (XBoardConfig.state != ConfigAccessorState.ready) {
+          await XBoardConfig.stateChangeStream
+              .firstWhere((state) => state == ConfigAccessorState.ready)
+              .timeout(const Duration(seconds: 60));
+        }
+        await Future.delayed(const Duration(milliseconds: 1000));
         _logger.info('后台验证token有效性...');
-        // 使用 getUserInfo 验证 token
         try {
           await ref.read(getUserInfoProvider.future);
           _logger.info('Token验证成功，静默更新用户数据');
@@ -105,6 +118,8 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
           _logger.info('Token验证失败，显示登录过期提示: $e');
           _showTokenExpiredDialog();
         }
+      } on TimeoutException {
+        _logger.info('后台Token验证跳过：远程配置在60秒内未就绪');
       } catch (e) {
         _logger.info('后台token验证异常: $e');
       }
