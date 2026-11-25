@@ -262,37 +262,43 @@ class ConfigValidator {
         ));
       }
 
-      if (!itemMap.containsKey('apiBaseUrl') || itemMap['apiBaseUrl'] is! String) {
+      final crispId = itemMap['crispWebsiteId'] ?? itemMap['websiteId'];
+      if (crispId != null && crispId is! String) {
         errors.add(ValidationError(
-          field: 'onlineSupport[$i].apiBaseUrl',
-          message: 'Online support item must have a valid apiBaseUrl field',
-          type: ValidationErrorType.missingField,
+          field: 'onlineSupport[$i].crispWebsiteId',
+          message: 'crispWebsiteId must be a string',
+          type: ValidationErrorType.invalidType,
         ));
       }
 
-      if (!itemMap.containsKey('wsBaseUrl') || itemMap['wsBaseUrl'] is! String) {
-        errors.add(ValidationError(
-          field: 'onlineSupport[$i].wsBaseUrl',
-          message: 'Online support item must have a valid wsBaseUrl field',
-          type: ValidationErrorType.missingField,
-        ));
-      }
-
-      // 验证URL格式
-      if (itemMap.containsKey('apiBaseUrl') && itemMap['apiBaseUrl'] is String) {
-        final apiUrl = itemMap['apiBaseUrl'] as String;
-        if (!_isValidHttpUrl(apiUrl)) {
+      // Crisp-only entries need no legacy API/WebSocket endpoints.
+      // Keep validating those endpoints when the old support backend is used.
+      final hasCrispId = crispId is String && crispId.trim().isNotEmpty;
+      if (!hasCrispId) {
+        if (!itemMap.containsKey('apiBaseUrl') || itemMap['apiBaseUrl'] is! String) {
+          errors.add(ValidationError(
+            field: 'onlineSupport[$i].apiBaseUrl',
+            message: 'Legacy online support requires apiBaseUrl',
+            type: ValidationErrorType.missingField,
+          ));
+        }
+        if (!itemMap.containsKey('wsBaseUrl') || itemMap['wsBaseUrl'] is! String) {
+          errors.add(ValidationError(
+            field: 'onlineSupport[$i].wsBaseUrl',
+            message: 'Legacy online support requires wsBaseUrl',
+            type: ValidationErrorType.missingField,
+          ));
+        }
+        if (itemMap['apiBaseUrl'] is String &&
+            !_isValidHttpUrl(itemMap['apiBaseUrl'] as String)) {
           errors.add(ValidationError(
             field: 'onlineSupport[$i].apiBaseUrl',
             message: 'apiBaseUrl must be a valid HTTP/HTTPS URL',
             type: ValidationErrorType.invalidFormat,
           ));
         }
-      }
-
-      if (itemMap.containsKey('wsBaseUrl') && itemMap['wsBaseUrl'] is String) {
-        final wsUrl = itemMap['wsBaseUrl'] as String;
-        if (!_isValidWebSocketUrl(wsUrl)) {
+        if (itemMap['wsBaseUrl'] is String &&
+            !_isValidWebSocketUrl(itemMap['wsBaseUrl'] as String)) {
           errors.add(ValidationError(
             field: 'onlineSupport[$i].wsBaseUrl',
             message: 'wsBaseUrl must be a valid WebSocket URL',
