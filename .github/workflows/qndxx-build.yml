@@ -23,17 +23,19 @@ jobs:
             artifact: build/app/outputs/flutter-apk/app-release.apk
             artifact_name: QNDXX-Android-5.2.1
           - platform: Windows
-            os: windows-latest
+            os: windows-2022
             command: flutter build windows --release
             artifact: build/windows/x64/runner/Release
             artifact_name: QNDXX-Windows-5.2.1
           - platform: macOS
-            os: macos-latest
+            os: macos-15
             command: flutter build macos --release
             artifact: build/macos/Build/Products/Release
             artifact_name: QNDXX-macOS-5.2.1
 
     runs-on: ${{ matrix.os }}
+    env:
+      CMAKE_GENERATOR: ${{ matrix.platform == 'Windows' && 'Visual Studio 17 2022' || '' }}
     steps:
       - name: Checkout QNDXX
         uses: actions/checkout@v4
@@ -62,6 +64,13 @@ jobs:
 
       - name: Generate Dart code
         run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate XBoard SDK code
+        shell: bash
+        run: |
+          cd lib/sdk/flutter_xboard_sdk
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
 
       - name: Build
         shell: bash
