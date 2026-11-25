@@ -313,25 +313,25 @@ func handleUpdateGeoData(geoType string, geoName string, fn func(value string)) 
 		path := constant.Path.Resolve(geoName)
 		switch geoType {
 		case "MMDB":
-			err := updater.UpdateMMDBWithPath(path)
+			err := updater.UpdateMMDB()
 			if err != nil {
 				fn(err.Error())
 				return
 			}
 		case "ASN":
-			err := updater.UpdateASNWithPath(path)
+			err := updater.UpdateASN()
 			if err != nil {
 				fn(err.Error())
 				return
 			}
 		case "GeoIp":
-			err := updater.UpdateGeoIpWithPath(path)
+			err := updater.UpdateGeoIp()
 			if err != nil {
 				fn(err.Error())
 				return
 			}
 		case "GeoSite":
-			err := updater.UpdateGeoSiteWithPath(path)
+			err := updater.UpdateGeoSite()
 			if err != nil {
 				fn(err.Error())
 				return
@@ -467,7 +467,7 @@ func handleSetupConfig(bytes []byte) string {
 }
 
 func init() {
-	adapter.UrlTestHook = func(url string, name string, delay uint16) {
+	adapter.UrlTestHook = func(url string, name string, delay uint16, _ bool) {
 		delayData := &Delay{
 			Url:  url,
 			Name: name,
