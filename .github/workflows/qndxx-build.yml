@@ -1,11 +1,10 @@
 name: QNDXX 5.2.1 Multi-platform Build
 
 # Build Android, Windows, and macOS artifacts for the QNDXX branch.
+# Automatic builds are intentionally disabled while QNDXX functionality is being repaired.
+# Start a release build manually only after explicit approval.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - qndxx/qndxx
 
 permissions:
   contents: read
