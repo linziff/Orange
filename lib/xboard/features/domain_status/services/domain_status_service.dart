@@ -44,9 +44,6 @@ class DomainStatusService {
     try {
       _logger.info('开始检查域名状态');
 
-      // 首帧显示后再获取远程配置；失败由现有域名检查状态处理，不阻塞应用窗口创建。
-      await XBoardConfig.refresh();
-
       // 使用竞速方式获取最优域名信息
       final startTime = DateTime.now();
       final bestDomain = await XBoardConfig.getFastestPanelUrl();
