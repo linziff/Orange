@@ -83,7 +83,7 @@ class ConfigFileLoader {
     
     _logger.info('[ConfigLoader] 成功解析 ${sources.length} 个配置源');
     for (final source in sources) {
-      _logger.info('[ConfigLoader] - ${source.name}: ${source.url}');
+      _logger.info('[ConfigLoader] - ${source.name}: URL 已隐藏');
     }
     
     return RemoteConfigSettings(
