@@ -1,0 +1,55 @@
+name: QNDXX Dependency Lockfile
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - qndxx/qndxx
+    paths:
+      - pubspec.yaml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qndxx-lockfile-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout QNDXX
+        uses: actions/checkout@v4
+        with:
+          ref: qndxx/qndxx
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.8'
+          channel: stable
+          cache: true
+
+      - name: Resolve and lock dependencies
+        run: flutter pub get
+
+      - name: Verify embedded WebView is locked
+        shell: bash
+        run: |
+          grep -A 8 '^  flutter_inappwebview:' pubspec.lock
+          grep -q '^  flutter_inappwebview:' pubspec.lock
+
+      - name: Commit updated lockfile
+        shell: bash
+        run: |
+          if git diff --quiet -- pubspec.lock; then
+            echo "pubspec.lock is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pubspec.lock
+          git commit -m "chore: lock Flutter dependencies including embedded WebView"
+          git push origin HEAD:qndxx/qndxx
