@@ -88,6 +88,9 @@ jobs:
           flutter-version: '3.32.8'
           channel: stable
           cache: true
+          # Windows ARM runner must use the x64 Flutter host SDK; other jobs
+          # use their native host architecture.
+          architecture: ${{ matrix.flutter_arch || (matrix.platform == 'macOS' && matrix.arch == 'arm64' && 'arm64') || 'x64' }}
 
       - name: Flutter version
         run: flutter --version
