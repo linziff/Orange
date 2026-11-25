@@ -262,19 +262,22 @@ class ConfigValidator {
         ));
       }
 
-      if (!itemMap.containsKey('apiBaseUrl') || itemMap['apiBaseUrl'] is! String) {
+      // apiBaseUrl/wsBaseUrl were added after the original config format.
+      // Accept legacy entries containing only url; OnlineSupportInfo derives
+      // the corresponding API and WebSocket base URLs during deserialization.
+      if (itemMap.containsKey('apiBaseUrl') && itemMap['apiBaseUrl'] is! String) {
         errors.add(ValidationError(
           field: 'onlineSupport[$i].apiBaseUrl',
-          message: 'Online support item must have a valid apiBaseUrl field',
-          type: ValidationErrorType.missingField,
+          message: 'apiBaseUrl must be a string when provided',
+          type: ValidationErrorType.invalidType,
         ));
       }
 
-      if (!itemMap.containsKey('wsBaseUrl') || itemMap['wsBaseUrl'] is! String) {
+      if (itemMap.containsKey('wsBaseUrl') && itemMap['wsBaseUrl'] is! String) {
         errors.add(ValidationError(
           field: 'onlineSupport[$i].wsBaseUrl',
-          message: 'Online support item must have a valid wsBaseUrl field',
-          type: ValidationErrorType.missingField,
+          message: 'wsBaseUrl must be a string when provided',
+          type: ValidationErrorType.invalidType,
         ));
       }
 
