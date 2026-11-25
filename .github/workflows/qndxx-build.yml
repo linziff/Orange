@@ -76,12 +76,19 @@ jobs:
         if: matrix.platform == 'Windows' || matrix.platform == 'macOS'
         uses: actions/setup-go@v5
         with:
-          go-version-file: core/go.mod
+          go-version: '1.25.x'
           cache-dependency-path: core/go.sum
 
       - name: Setup Rust
         if: matrix.platform == 'Windows'
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve Mihomo core modules
+        if: matrix.platform == 'Windows' || matrix.platform == 'macOS'
+        shell: bash
+        run: |
+          cd core
+          go mod tidy
 
       - name: Build Windows core and helper service
         if: matrix.platform == 'Windows'
