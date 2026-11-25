@@ -62,7 +62,7 @@ class _OnlineSupportPageState extends ConsumerState<OnlineSupportPage> {
 
   @override
   Widget build(BuildContext context) {
-    final crispWebsiteId = XBoardConfig.crispWebsiteId;
+    final crispWebsiteId = XBoardConfig.isInitialized ? XBoardConfig.crispWebsiteId : null;
     if (crispWebsiteId != null && crispWebsiteId.trim().isNotEmpty) {
       return CrispSupportView(websiteId: crispWebsiteId);
     }
