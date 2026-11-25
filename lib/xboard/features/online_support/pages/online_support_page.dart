@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/xboard/config/xboard_config.dart';
+import 'package:fl_clash/xboard/widgets/crisp_support_view.dart';
 import 'package:fl_clash/xboard/features/online_support/models/message_model.dart';
 import 'package:fl_clash/xboard/features/online_support/providers/chat_provider.dart';
 import 'package:fl_clash/xboard/features/online_support/services/websocket_service.dart';
@@ -60,6 +62,11 @@ class _OnlineSupportPageState extends ConsumerState<OnlineSupportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final crispWebsiteId = XBoardConfig.crispWebsiteId;
+    if (crispWebsiteId != null && crispWebsiteId.trim().isNotEmpty) {
+      return CrispSupportView(websiteId: crispWebsiteId);
+    }
+
     final chatState = ref.watch(chatProvider);
     final chatNotifier = ref.watch(chatProvider.notifier);
 
