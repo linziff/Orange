@@ -72,6 +72,34 @@ jobs:
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
 
+      - name: Setup Go
+        if: matrix.platform == 'Windows' || matrix.platform == 'macOS'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: core/go.mod
+          cache-dependency-path: core/go.sum
+
+      - name: Setup Rust
+        if: matrix.platform == 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Windows core and helper service
+        if: matrix.platform == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p libclash/windows
+          dart setup.dart windows --arch amd64 --out core
+          TOKEN="$(sha256sum libclash/windows/FlClashCore.exe | awk '{print $1}')"
+          TOKEN="$TOKEN" cargo build --release --features windows-service --manifest-path services/helper/Cargo.toml
+          cp services/helper/target/release/helper.exe libclash/windows/FlClashHelperService.exe
+
+      - name: Build macOS core
+        if: matrix.platform == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p libclash/macos
+          dart setup.dart macos --arch arm64 --out core
+
       - name: Build
         shell: bash
         run: ${{ matrix.command }}
