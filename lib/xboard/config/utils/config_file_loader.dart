@@ -104,6 +104,7 @@ class ConfigFileLoader {
           ? Duration(seconds: json['timeout_seconds'] as int)
           : null,
       encryptionKey: json['encryption_key'] as String?,
+      priority: json['priority'] as int? ?? 0,
     );
   }
   
