@@ -8,11 +8,10 @@ xboard:
   # Primary and fallback remote configuration endpoints.
   remote_config:
     sources:
-      - name: primary
-        url: https://img.toufq.com/speed/blob/main/url/config.json
-        priority: 100
+      # User-provided backup endpoint. Do not invent a primary endpoint:
+      # add the real primary URL when it is confirmed.
       - name: backup
-        url: https://toufq.com/speed/blob/main/config.json
+        url: https://img.toufq.com/speed/blob/main/url/config.json
         priority: 90
     max_retries: 3
     timeout_seconds: 15
