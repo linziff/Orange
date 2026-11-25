@@ -39,27 +39,29 @@ void main() {
           {
             'url': 'https://panel.example',
             'description': 'test panel',
-            'supportEncrypt': true,
             'endpoints': {
               'v1': {
                 'path': '/api/v1/subscription/{token}',
                 'requiresToken': true,
                 'method': 'GET',
                 'description': 'plain',
-                'isEncrypt': false,
               },
               'v2': {
                 'path': '/api/v2/subscription-encrypt/{token}',
                 'requiresToken': true,
                 'method': 'GET',
                 'description': 'encrypted',
-                'isEncrypt': true,
               },
             },
           },
         ],
       });
 
+      expect(
+        subscription.buildSubscriptionUrl('token', forceEncrypt: false),
+        'https://panel.example/api/v1/subscription/token?flag=flclash',
+      );
+      expect(subscription.firstEncryptUrl, isNotNull);
       expect(
         subscription.buildSubscriptionUrl('token', forceEncrypt: false),
         'https://panel.example/api/v1/subscription/token?flag=flclash',
