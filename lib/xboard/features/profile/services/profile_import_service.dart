@@ -38,20 +38,24 @@ class XBoardProfileImportService {
     _isImporting = true;
     final stopwatch = Stopwatch()..start();
     try {
-      _logger.info('开始导入订阅配置: $url');
+      _logger.info('开始导入订阅配置');
       
       // 1. 先下载并验证新配置（不删除旧配置）
       onProgress?.call(ImportStatus.downloading, 0.3, '下载配置文件');
       final profile = await _downloadAndValidateProfile(url);
       onProgress?.call(ImportStatus.validating, 0.6, '验证配置格式');
       
-      // 2. 下载成功后，再清理旧配置（避免 UI 闪烁显示"无订阅"）
-      onProgress?.call(ImportStatus.cleaning, 0.8, '替换旧的订阅配置');
-      await _cleanOldUrlProfiles();
-      
-      // 3. 添加新配置
-      onProgress?.call(ImportStatus.adding, 0.9, '添加到配置列表');
+      // 2. 先添加并应用新配置。只有核心确认新配置可用后，才清理旧订阅。
+      onProgress?.call(ImportStatus.adding, 0.8, '应用新订阅配置');
       await _addProfile(profile);
+
+      // 3. 清理旧订阅失败不应回滚已经成功启用的新配置。
+      onProgress?.call(ImportStatus.cleaning, 0.95, '清理旧的订阅配置');
+      try {
+        await _cleanOldUrlProfiles(exceptProfileId: profile.id);
+      } catch (e) {
+        _logger.warning('新订阅已启用，但旧订阅清理未完全完成', e);
+      }
       
       stopwatch.stop();
       onProgress?.call(ImportStatus.success, 1.0, '导入成功');
@@ -102,10 +106,10 @@ class XBoardProfileImportService {
       errorType: ImportErrorType.networkError,
     );
   }
-  Future<void> _cleanOldUrlProfiles() async {
+  Future<void> _cleanOldUrlProfiles({String? exceptProfileId}) async {
     try {
       final profiles = globalState.config.profiles;
-      final urlProfiles = profiles.where((profile) => profile.type == ProfileType.url).toList();
+      final urlProfiles = profiles.where((profile) => profile.type == ProfileType.url && profile.id != exceptProfileId).toList();
       
       for (final profile in urlProfiles) {
         _logger.debug('删除旧的URL配置: ${profile.label ?? profile.id}');
@@ -121,7 +125,7 @@ class XBoardProfileImportService {
   }
   Future<Profile> _downloadAndValidateProfile(String url) async {
     try {
-      _logger.info('开始下载配置: $url');
+      _logger.info('开始下载订阅配置');
       
       // 先检查用户配置是否禁用了加密订阅
       final preferEncrypt = await ConfigFileLoaderHelper.getPreferEncrypt();
@@ -165,7 +169,7 @@ class XBoardProfileImportService {
   Future<Profile> _downloadEncryptedProfile(String url) async {
     try {
       _logger.info('📦 开始下载加密订阅配置流程');
-      _logger.debug('🔗 目标URL: $url');
+      _logger.debug('开始获取加密订阅内容（地址已隐藏）');
 
       // 从本地配置读取订阅偏好设置（竞速自动跟随加密选项）
       final preferEncrypt = await ConfigFileLoaderHelper.getPreferEncrypt();
@@ -189,10 +193,10 @@ class XBoardProfileImportService {
           _logger.warning('⚠️ 从登录数据获取失败，尝试从URL提取token: ${result.error}');
           token = SubscriptionUrlHelper.extractTokenFromUrl(url);
           if (token == null) {
-            throw Exception('无法从URL中提取token且登录数据获取失败: $url');
+            throw Exception('无法从登录数据或订阅地址中获取有效凭据');
           }
 
-          _logger.debug('🔑 从URL提取到token: ${token.substring(0, 8)}...');
+          _logger.debug('已从订阅地址提取凭据（内容已隐藏）');
           result = await EncryptedSubscriptionService.getSubscriptionSmart(
             token,
             preferEncrypt: preferEncrypt,
@@ -206,10 +210,10 @@ class XBoardProfileImportService {
         _logger.warning('⚠️ 登录方式失败，fallback到URL解析', e);
         token = SubscriptionUrlHelper.extractTokenFromUrl(url);
         if (token == null) {
-          throw Exception('所有token获取方式都失败: $url');
+          throw Exception('无法从登录数据或订阅地址中获取有效凭据');
         }
 
-        _logger.debug('🔄 Fallback - 从URL提取到token: ${token.substring(0, 8)}...');
+        _logger.debug('已切换备用凭据来源（内容已隐藏）');
         result = await EncryptedSubscriptionService.getSubscriptionSmart(
           token,
           preferEncrypt: preferEncrypt,
@@ -223,7 +227,7 @@ class XBoardProfileImportService {
 
       _logger.info('🎉 加密订阅获取成功！加密模式: ${result.encryptionUsed}');
       if (result.keyUsed != null) {
-        _logger.debug('🔑 使用解密密钥: ${result.keyUsed?.substring(0, 8)}...');
+        _logger.debug('已使用解密密钥（内容已隐藏）');
       }
       
       // 验证解密后的配置内容
@@ -270,32 +274,27 @@ class XBoardProfileImportService {
   }
 
   Future<void> _addProfile(Profile profile) async {
+    final previousProfileId = _ref.read(currentProfileIdProvider);
     try {
-      // 1. 添加配置到列表
       _ref.read(profilesProvider.notifier).setProfile(profile);
-      
-      // 2. 强制设置为当前配置（订阅导入是用户主动操作，应该立即生效）
-      final currentProfileIdNotifier = _ref.read(currentProfileIdProvider.notifier);
-      currentProfileIdNotifier.value = profile.id;
-      _logger.info('✅ 已设置为当前配置: ${profile.label ?? profile.id}');
-      
-      // 3. 使用 silence 模式直接应用配置（新路由系统中 homeScaffoldKey 不可用）
-      // needSetupProvider 的监听器会触发 handleChangeProfile，但因为 commonScaffoldState 
-      // 未 mounted 会失败，所以我们在这里手动用 silence 模式触发
-      _logger.info('📋 使用 silence 模式应用配置...');
-      try {
-        await globalState.appController.applyProfile(silence: true);
-        _logger.info('配置应用成功');
-      } catch (e) {
-        // Do not report a successful import when Mihomo rejected the profile
-        // or failed to activate it. Keep the detailed error for local logs.
-        _logger.error('配置应用失败', e);
-        rethrow;
-      }
-      
-      _logger.info('配置添加成功: ${profile.label ?? profile.id}');
+      _ref.read(currentProfileIdProvider.notifier).value = profile.id;
+
+      // Apply through the real core before deleting any previously working profile.
+      await globalState.appController.applyProfile(silence: true);
+      _logger.info('新订阅已通过核心验证并成功应用');
     } catch (e) {
-      throw Exception('添加配置失败: $e');
+      // Roll back the newly inserted profile and restore the previously active one.
+      try {
+        _ref.read(profilesProvider.notifier).deleteProfileById(profile.id);
+        _clearProfileEffect(profile.id);
+        _ref.read(currentProfileIdProvider.notifier).value = previousProfileId;
+        if (previousProfileId != null) {
+          await globalState.appController.applyProfile(silence: true);
+        }
+      } catch (rollbackError) {
+        _logger.error('新订阅回滚未能完全完成', rollbackError);
+      }
+      throw Exception('新订阅应用失败，已尝试恢复原配置: $e');
     }
   }
   void _clearProfileEffect(String profileId) {
