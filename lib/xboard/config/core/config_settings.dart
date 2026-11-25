@@ -89,9 +89,13 @@ class RemoteConfigSettings {
 
     return RemoteConfigSettings(
       sources: sources,
-      maxRetries: json['maxRetries'] as int? ?? 3,
-      timeout: Duration(seconds: json['timeoutSeconds'] as int? ?? 10),
-      retryDelay: Duration(seconds: json['retryDelaySeconds'] as int? ?? 2),
+      maxRetries: (json['maxRetries'] ?? json['max_retries']) as int? ?? 3,
+      timeout: Duration(
+        seconds: (json['timeoutSeconds'] ?? json['timeout_seconds']) as int? ?? 10,
+      ),
+      retryDelay: Duration(
+        seconds: (json['retryDelaySeconds'] ?? json['retry_delay_seconds']) as int? ?? 2,
+      ),
     );
   }
 
@@ -155,7 +159,8 @@ class RemoteSourceConfig {
 
   factory RemoteSourceConfig.fromJson(Map<String, dynamic> json) {
     final headersData = json['headers'] as Map<String, dynamic>?;
-    final timeoutSeconds = json['timeoutSeconds'] as int?;
+    final timeoutSeconds =
+        (json['timeoutSeconds'] ?? json['timeout_seconds']) as int?;
 
     return RemoteSourceConfig(
       name: json['name'] as String? ?? '',
