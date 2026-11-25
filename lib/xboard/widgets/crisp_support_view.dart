@@ -33,8 +33,8 @@ class CrispSupportView extends StatelessWidget {
 <body>
   <script>
     window.CRISP_WEBSITE_ID = "$safeId";
-    window.$crisp = [];
-    window.$crisp.push(["safe", true]);
+    window.\$crisp = [];
+    window.\$crisp.push(["safe", true]);
   </script>
   <script src="https://client.crisp.chat/l.js" async></script>
 </body>
