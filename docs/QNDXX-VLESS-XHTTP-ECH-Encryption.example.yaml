@@ -22,7 +22,11 @@ proxies:
     # ECH：若服务端要求指定 ECH DNS 查询名称，请替换 query-server-name。
     ech-opts:
       enable: true
-      query-server-name: "cloudflare-ech.com"
+      # 可选：仅当 ECH HTTPS 记录发布在另一个域名时填写。
+      # 不填写时，核心使用上面的 servername 查询 ECH 配置。
+      # query-server-name: "YOUR_ECH_CONFIG_DOMAIN"
+      # 也可直接提供服务端对应的 ECHConfigList Base64：
+      # config: "YOUR_ECH_CONFIG_LIST_BASE64"
 
     # XHTTP 传输层。
     network: xhttp
