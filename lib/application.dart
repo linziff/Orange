@@ -76,7 +76,9 @@ class ApplicationState extends ConsumerState<Application> {
       // 保留原有初始化顺序；失败时记录阶段并继续认证状态收敛，
       // 避免路由因 isInitialized=false 永久停留在 /loading。
       try {
-        await globalState.appController.init();
+        await globalState.appController
+            .init()
+            .timeout(const Duration(seconds: 30));
       } catch (e, stackTrace) {
         debugPrint('[Application] 控制器初始化失败（${e.runtimeType}）');
         debugPrintStack(stackTrace: stackTrace);
