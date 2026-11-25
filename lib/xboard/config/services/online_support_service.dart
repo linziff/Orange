@@ -11,9 +11,23 @@ class OnlineSupportService {
   OnlineSupportInfo? getFirstAvailableConfig() =>
       _configs.isNotEmpty ? _configs.first : null;
 
-  String? getApiBaseUrl() => getFirstAvailableConfig()?.apiBaseUrl;
+  String? getApiBaseUrl() {
+    for (final config in _configs) {
+      if (!config.hasCrisp && config.apiBaseUrl.trim().isNotEmpty) {
+        return config.apiBaseUrl;
+      }
+    }
+    return null;
+  }
 
-  String? getWebSocketBaseUrl() => getFirstAvailableConfig()?.wsBaseUrl;
+  String? getWebSocketBaseUrl() {
+    for (final config in _configs) {
+      if (!config.hasCrisp && config.wsBaseUrl.trim().isNotEmpty) {
+        return config.wsBaseUrl;
+      }
+    }
+    return null;
+  }
 
   /// Returns the first configured Crisp Website ID from remote JSON.
   String? getCrispWebsiteId() {
@@ -24,8 +38,10 @@ class OnlineSupportService {
     return null;
   }
 
+  /// Indicates whether the legacy self-hosted chat backend is configured.
+  /// Crisp is handled by the embedded WebView and must not start legacy APIs.
   bool hasAvailableConfig() =>
-      _configs.any((config) => config.hasCrisp || config.validate());
+      _configs.any((config) => !config.hasCrisp && config.validate());
 
   Map<String, dynamic> getConfigStats() => {
         'totalConfigs': _configs.length,
