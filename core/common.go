@@ -27,6 +27,7 @@ import (
 )
 
 var (
+	defaultTestURL = "https://www.gstatic.com/generate_204"
 	currentConfig *config.Config
 	version       = 0
 	isRunning     = false
@@ -66,7 +67,19 @@ func toExternalProvider(p cp.Provider) (*ExternalProvider, error) {
 			Count:            psp.Count(),
 			UpdateAt:         psp.UpdatedAt(),
 			Path:             psp.Vehicle().Path(),
-			SubscriptionInfo: psp.GetSubscriptionInfo(),
+			SubscriptionInfo: func() *provider.SubscriptionInfo {
+				raw, err := psp.MarshalJSON()
+				if err != nil {
+					return nil
+				}
+				var details struct {
+					SubscriptionInfo *provider.SubscriptionInfo `json:"subscriptionInfo"`
+				}
+				if json.Unmarshal(raw, &details) != nil {
+					return nil
+				}
+				return details.SubscriptionInfo
+			}(),
 		}, nil
 	case *rp.RuleSetProvider:
 		rsp := p.(*rp.RuleSetProvider)
@@ -133,11 +146,12 @@ func updateListeners() {
 }
 
 func stopListeners() {
-	listener.StopListener()
+	listener.PatchInboundListeners(nil, tunnel.Tunnel, true)
+	listener.Cleanup()
 }
 
 func patchSelectGroup(mapping map[string]string) {
-	for name, proxy := range tunnel.ProxiesWithProviders() {
+	for name, proxy := range tunnel.Proxies() {
 		outbound, ok := proxy.(*adapter.Proxy)
 		if !ok {
 			continue
@@ -239,7 +253,7 @@ func setupConfig(params *SetupParams) error {
 	runLock.Lock()
 	defer runLock.Unlock()
 	var err error
-	constant.DefaultTestURL = params.TestURL
+	defaultTestURL = params.TestURL
 	currentConfig, err = config.ParseRawConfig(params.Config)
 	if err != nil {
 		currentConfig, _ = config.ParseRawConfig(config.DefaultRawConfig())
