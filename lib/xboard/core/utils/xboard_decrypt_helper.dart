@@ -19,6 +19,9 @@ class XBoardDecryptHelper {
   /// [key] 解密密钥
   static Uint8List xorDecrypt(Uint8List data, String key) {
     final keyBytes = utf8.encode(key);
+    if (keyBytes.isEmpty) {
+      throw ArgumentError.value(key, 'key', 'XBoard decrypt key must not be empty');
+    }
     final keyLength = keyBytes.length;
     final result = Uint8List(data.length);
     
@@ -140,9 +143,18 @@ class XBoardDecryptHelper {
   }) {
     // 构建密钥列表
     final keys = [
-      configuredKey,
+      if (configuredKey.isNotEmpty) configuredKey,
       if (tryFallback) ...getFallbackKeys(),
     ];
+    if (keys.isEmpty) {
+      return const DecryptResult(
+        success: false,
+        content: '',
+        keyUsed: null,
+        keyIndex: -1,
+        message: '未配置订阅解密密钥',
+      );
+    }
     
     for (int i = 0; i < keys.length; i++) {
       final key = keys[i];
