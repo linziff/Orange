@@ -66,7 +66,7 @@ class XBoardProfileImportService {
       );
     } catch (e) {
       stopwatch.stop();
-      _logger.error('订阅配置导入失败', e);
+      _logger.error('订阅配置导入失败（详细内容已隐藏）');
       final errorType = _classifyError(e);
       final userMessage = _getUserFriendlyErrorMessage(e, errorType);
       onProgress?.call(ImportStatus.failed, 0.0, userMessage);
@@ -190,7 +190,7 @@ class XBoardProfileImportService {
 
         if (!result.success) {
           // 如果从登录数据获取失败，尝试从URL提取token
-          _logger.warning('⚠️ 从登录数据获取失败，尝试从URL提取token: ${result.error}');
+          _logger.warning('登录凭据获取失败，尝试使用订阅地址中的凭据（详细内容已隐藏）');
           token = SubscriptionUrlHelper.extractTokenFromUrl(url);
           if (token == null) {
             throw Exception('无法从登录数据或订阅地址中获取有效凭据');
@@ -207,7 +207,7 @@ class XBoardProfileImportService {
         }
       } catch (e) {
         // 最后的fallback：从URL提取token
-        _logger.warning('⚠️ 登录方式失败，fallback到URL解析', e);
+        _logger.warning('登录凭据方式失败，切换备用凭据来源（详细内容已隐藏）');
         token = SubscriptionUrlHelper.extractTokenFromUrl(url);
         if (token == null) {
           throw Exception('无法从登录数据或订阅地址中获取有效凭据');
@@ -267,7 +267,7 @@ class XBoardProfileImportService {
       return updatedProfile;
       
     } catch (e) {
-      _logger.error('💥 加密配置下载失败', e);
+      _logger.error('加密配置下载失败（详细内容已隐藏）');
       _logger.debug('❌ 加密订阅处理流程异常终止');
       throw Exception('加密订阅处理失败: $e');
     }
@@ -292,7 +292,7 @@ class XBoardProfileImportService {
           await globalState.appController.applyProfile(silence: true);
         }
       } catch (rollbackError) {
-        _logger.error('新订阅回滚未能完全完成', rollbackError);
+        _logger.error('新订阅回滚未能完全完成（详细内容已隐藏）');
       }
       throw Exception('新订阅应用失败，已尝试恢复原配置: $e');
     }
