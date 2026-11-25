@@ -57,49 +57,36 @@ class ConfigResult<T> {
 
 /// 多配置源结果
 class MultiConfigResult {
-  /// 重定向配置源结果
+  /// 兼容旧配置格式的两个命名结果。
   final ConfigResult<Map<String, dynamic>> redirectResult;
-  
-  /// Gitee配置源结果
   final ConfigResult<Map<String, dynamic>> giteeResult;
-  
+
+  /// 所有配置源的结果，按配置优先级从高到低排列。
+  final List<ConfigResult<Map<String, dynamic>>> orderedResults;
+
   const MultiConfigResult({
     required this.redirectResult,
     required this.giteeResult,
+    this.orderedResults = const [],
   });
-  
-  /// 是否有任何一个配置源成功
-  bool get hasSuccess => redirectResult.isSuccess || giteeResult.isSuccess;
-  
-  /// 获取第一个成功的配置数据
-  Map<String, dynamic>? get firstSuccessfulData {
-    if (redirectResult.isSuccess && redirectResult.data != null) {
-      return redirectResult.data;
+
+  List<ConfigResult<Map<String, dynamic>>> get results =>
+      orderedResults.isNotEmpty ? orderedResults : [redirectResult, giteeResult];
+
+  bool get hasSuccess => results.any((result) => result.isSuccess);
+  Map<String, dynamic>? get firstSuccessfulData => firstSuccessful?.data;
+  String? get firstSuccessfulSource => firstSuccessful?.source;
+
+  ConfigResult<Map<String, dynamic>>? get firstSuccessful {
+    for (final result in results) {
+      if (result.isSuccess && result.data != null) return result;
     }
-    if (giteeResult.isSuccess && giteeResult.data != null) {
-      return giteeResult.data;
-    }
-    return null;
-  }
-  
-  /// 获取第一个成功的配置源名称
-  String? get firstSuccessfulSource {
-    if (redirectResult.isSuccess) return redirectResult.source;
-    if (giteeResult.isSuccess) return giteeResult.source;
     return null;
   }
 
-  /// 获取第一个成功的结果
-  ConfigResult<Map<String, dynamic>>? get firstSuccessful {
-    if (redirectResult.isSuccess) return redirectResult;
-    if (giteeResult.isSuccess) return giteeResult;
-    return null;
-  }
-  
   @override
-  String toString() {
-    return 'MultiConfigResult{redirect: ${redirectResult.status}, gitee: ${giteeResult.status}}';
-  }
+  String toString() =>
+      'MultiConfigResult{sources: ${results.map((e) => '${e.source}: ${e.status}').join(', ')}}';
 }
 
 /// HTTP客户端抽象接口
@@ -118,10 +105,10 @@ class SimpleHttpClient implements IHttpClient {
       client.connectionTimeout = timeout ?? const Duration(seconds: 10);
 
       final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close();
+      final response = await request.close().timeout(timeout);
 
       if (response.statusCode == 200) {
-        return await response.transform(utf8.decoder).join();
+        return await response.transform(utf8.decoder).join().timeout(timeout);
       }
 
       return null;
@@ -145,19 +132,19 @@ class RedirectConfigSource implements ConfigSource {
   final IHttpClient _httpClient;
   final String redirectUrl;
   final Duration timeout;
+  @override
+  final String sourceName;
+  @override
+  final int priority;
 
   RedirectConfigSource({
     IHttpClient? httpClient,
     required this.redirectUrl,
     Duration? timeout,
+    this.sourceName = 'redirect',
+    this.priority = 1,
   }) : _httpClient = httpClient ?? SimpleHttpClient(),
        timeout = timeout ?? const Duration(seconds: 10);
-
-  @override
-  String get sourceName => 'redirect';
-
-  @override
-  int get priority => 1;
 
   @override
   Future<ConfigResult<Map<String, dynamic>>> fetchConfig() async {
@@ -329,28 +316,30 @@ class RemoteConfigManager {
   /// 从配置设置创建RemoteConfigManager
   factory RemoteConfigManager.fromSettings(RemoteConfigSettings settings) {
     final sources = <ConfigSource>[];
-    
+
     for (final sourceConfig in settings.sources) {
-      switch (sourceConfig.name) {
-        case 'redirect':
-          sources.add(RedirectConfigSource(
-            redirectUrl: sourceConfig.url,
-            timeout: sourceConfig.timeout ?? settings.timeout,
-          ));
-          break;
-        case 'gitee':
-          if (sourceConfig.encryptionKey == null || sourceConfig.encryptionKey!.isEmpty) {
-            throw Exception('Gitee配置源必须提供 encryptionKey');
-          }
-          sources.add(GiteeConfigSource(
-            giteeUrl: sourceConfig.url,
-            encryptionKeyBase64: sourceConfig.encryptionKey!,
-            timeout: sourceConfig.timeout ?? settings.timeout,
-          ));
-          break;
+      if (sourceConfig.name.toLowerCase() == 'gitee') {
+        if (sourceConfig.encryptionKey == null ||
+            sourceConfig.encryptionKey!.isEmpty) {
+          throw Exception('Gitee配置源必须提供 encryptionKey');
+        }
+        sources.add(GiteeConfigSource(
+          giteeUrl: sourceConfig.url,
+          encryptionKeyBase64: sourceConfig.encryptionKey!,
+          timeout: sourceConfig.timeout ?? settings.timeout,
+        ));
+      } else {
+        // 支持 primary / backup 等自定义 JSON 源名称，同时兼容 redirect。
+        sources.add(RedirectConfigSource(
+          redirectUrl: sourceConfig.url,
+          timeout: sourceConfig.timeout ?? settings.timeout,
+          sourceName: sourceConfig.name,
+          priority: sourceConfig.priority,
+        ));
       }
     }
-    
+
+    sources.sort((a, b) => b.priority.compareTo(a.priority));
     return RemoteConfigManager(
       sources: sources,
       maxRetries: settings.maxRetries,
@@ -363,54 +352,28 @@ class RemoteConfigManager {
     return [];
   }
 
-  /// 从所有配置源获取配置
+  /// 从所有配置源获取配置，支持任意数量的主/备用 JSON 源。
   Future<MultiConfigResult> fetchAllConfigs() async {
     if (_configSources.isEmpty) {
       throw Exception('没有可用的配置源');
     }
 
-    // 查找重定向和Gitee配置源
-    ConfigSource? redirectSource;
-    ConfigSource? giteeSource;
+    final sources = [..._configSources]
+      ..sort((a, b) => b.priority.compareTo(a.priority));
+    final results = await Future.wait(
+      sources.map((source) => _fetchWithRetry(source)),
+    );
 
-    for (final source in _configSources) {
-      if (source.sourceName == 'redirect') {
-        redirectSource = source;
-      } else if (source.sourceName == 'gitee') {
-        giteeSource = source;
-      }
-    }
-
-    // 并发或串行获取配置
-    late ConfigResult<Map<String, dynamic>> redirectResult;
-    late ConfigResult<Map<String, dynamic>> giteeResult;
-
-    if (_enableConcurrentFetch && redirectSource != null && giteeSource != null) {
-      // 并发请求
-      final results = await Future.wait([
-        _fetchWithRetry(redirectSource),
-        _fetchWithRetry(giteeSource),
-      ]);
-      redirectResult = results[0];
-      giteeResult = results[1];
-    } else {
-      // 串行请求
-      if (redirectSource != null) {
-        redirectResult = await _fetchWithRetry(redirectSource);
-      } else {
-        redirectResult = ConfigResult.failure('重定向配置源未注册', 'redirect');
-      }
-
-      if (giteeSource != null) {
-        giteeResult = await _fetchWithRetry(giteeSource);
-      } else {
-        giteeResult = ConfigResult.failure('Gitee配置源未注册', 'gitee');
-      }
-    }
+    ConfigResult<Map<String, dynamic>> resultFor(String name) =>
+        results.firstWhere(
+          (result) => result.source.toLowerCase() == name,
+          orElse: () => ConfigResult.failure('配置源未注册', name),
+        );
 
     return MultiConfigResult(
-      redirectResult: redirectResult,
-      giteeResult: giteeResult,
+      redirectResult: resultFor('redirect'),
+      giteeResult: resultFor('gitee'),
+      orderedResults: results,
     );
   }
 
