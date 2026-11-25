@@ -107,10 +107,12 @@ Future<void> _initializeXBoardServices() async {
     // 在 Application.initState 中会预热 SDK
     print('[Main] SDK 将在应用启动后由 xboardSdkProvider 初始化');
     
-  } catch (e) {
-    print('[Main] XBoard服务初始化失败: $e');
-    // 没有域名就失败，不需要降级
-    rethrow;
+  } catch (e, stackTrace) {
+    // XBoard network/config failures must never prevent Flutter from mounting.
+    // Keep the failure visible in logs; the initialization/login flow can
+    // report it and retry after the UI is available.
+    print('[Main] XBoard服务初始化失败，继续启动界面: $e');
+    print(stackTrace);
   }
 }
 
