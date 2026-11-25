@@ -31,36 +31,61 @@ Future<void> main() async {
   globalState.isService = false;
   WidgetsFlutterBinding.ensureInitialized(); // 确保 Flutter 绑定已初始化
 
-  // 首先初始化XBoard配置模块和域名服务（必须在RemoteTaskManager之前）
-  await _initializeXBoardServices();
-
-  // 初始化 RemoteTaskManager - 非阻塞模式，失败不影响应用启动
-  try {
-    remoteTaskManager = await RemoteTaskManager.create();
-    if (remoteTaskManager != null) {
-      remoteTaskManager!.initialize(); // 初始化管理器
-      remoteTaskManager!.start(); // 启动 WebSocket 连接
-      print('RemoteTaskManager 从配置初始化成功');
-    } else {
-      print('警告: RemoteTaskManager 初始化失败 - 配置中未找到 WebSocket URL，应用将继续启动但远程任务功能不可用');
-    }
-  } catch (e) {
-    print('警告: RemoteTaskManager 初始化异常: $e，应用将继续启动但远程任务功能不可用');
-    remoteTaskManager = null;
-  }
-
-  final version = await system.version;
-  await clashCore.preload();
-  await globalState.initApp(version);
-  await android?.init();
-  await window?.init(version); // 假设 window?.init(version) 是正确的调用
+  // 先设置网络覆盖与生命周期监听，避免远程服务初始化阻塞首帧。
   HttpOverrides.global = FlClashHttpOverrides();
-
-  // 注册 WidgetsBindingObserver 来监听应用生命周期事件
   WidgetsBinding.instance.addObserver(AppLifecycleObserver());
 
-  runApp(ProviderScope(
-    child: const Application(),
+  // 本地 XBoard 配置初始化不应阻塞应用窗口；失败时仍允许用户看到登录界面。
+  unawaited(_initializeXBoardServices().timeout(
+    const Duration(seconds: 12),
+    onTimeout: () => print('[Main] XBoard 配置初始化超时，先显示应用界面'),
+  ).catchError((e) {
+    print('[Main] XBoard 服务初始化失败，应用继续启动: $e');
+  }));
+
+  // 远程任务管理器完全属于后台能力，绝不等待它完成。
+  unawaited(Future<void>(() async {
+    try {
+      remoteTaskManager = await RemoteTaskManager.create()
+          .timeout(const Duration(seconds: 8));
+      remoteTaskManager?.initialize();
+      remoteTaskManager?.start();
+      print('[Main] RemoteTaskManager 后台初始化完成');
+    } catch (e) {
+      print('[Main] RemoteTaskManager 不可用，跳过: $e');
+      remoteTaskManager = null;
+    }
+  }));
+
+  final version = await system.version.timeout(
+    const Duration(seconds: 8),
+    onTimeout: () => 'unknown',
+  );
+
+  // Core/平台插件初始化有超时保护；任何单项失败都不能让窗口永久灰屏。
+  try {
+    await clashCore.preload().timeout(const Duration(seconds: 12));
+  } catch (e) {
+    print('[Main] Clash Core 预加载失败或超时，界面继续启动: $e');
+  }
+  try {
+    await globalState.initApp(version).timeout(const Duration(seconds: 12));
+  } catch (e) {
+    print('[Main] 本地状态初始化失败或超时，界面继续启动: $e');
+  }
+  try {
+    await android?.init().timeout(const Duration(seconds: 8));
+  } catch (e) {
+    print('[Main] Android 插件初始化失败或超时: $e');
+  }
+  try {
+    await window?.init(version).timeout(const Duration(seconds: 8));
+  } catch (e) {
+    print('[Main] 桌面窗口插件初始化失败或超时: $e');
+  }
+
+  runApp(const ProviderScope(
+    child: Application(),
   ));
 }
 
