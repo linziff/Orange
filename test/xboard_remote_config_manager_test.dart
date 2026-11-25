@@ -4,6 +4,18 @@ import 'package:fl_clash/xboard/config/fetchers/remote_config_manager.dart';
 
 void main() {
   group('RemoteConfigManager custom JSON sources', () {
+    test('parses snake_case encryption key and configured priority', () {
+      final source = RemoteSourceConfig.fromJson({
+        'name': 'gitee',
+        'url': 'https://gitee.example/config.txt',
+        'encryption_key': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        'priority': 95,
+      });
+
+      expect(source.encryptionKey, isNotEmpty);
+      expect(source.priority, 95);
+    });
+
     test('registers primary and backup sources in priority order', () {
       final manager = RemoteConfigManager.fromSettings(
         const RemoteConfigSettings(
