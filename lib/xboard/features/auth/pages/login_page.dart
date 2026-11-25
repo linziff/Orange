@@ -217,6 +217,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
+                            if (initState.isFailed) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                initState.errorMessage ?? 'XBoard 初始化失败',
+                                textAlign: TextAlign.center,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.error,
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => ref
+                                    .read(initializationProvider.notifier)
+                                    .refresh(),
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('重新连接'),
+                              ),
+                            ],
                           ],
                         ),
                       ),
