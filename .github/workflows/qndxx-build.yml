@@ -73,22 +73,34 @@ jobs:
           dart run build_runner build --delete-conflicting-outputs
 
       - name: Setup Go
-        if: matrix.platform == 'Windows' || matrix.platform == 'macOS'
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.x'
           cache-dependency-path: core/go.sum
+
+      - name: Setup Android NDK path
+        if: matrix.platform == 'Android'
+        shell: bash
+        run: |
+          NDK_PATH="$(find "$ANDROID_SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          test -n "$NDK_PATH"
+          echo "ANDROID_NDK=$NDK_PATH" >> "$GITHUB_ENV"
 
       - name: Setup Rust
         if: matrix.platform == 'Windows'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Resolve Mihomo core modules
-        if: matrix.platform == 'Windows' || matrix.platform == 'macOS'
         shell: bash
         run: |
           cd core
           go mod tidy
+
+      - name: Build Android Mihomo core libraries
+        if: matrix.platform == 'Android'
+        shell: bash
+        run: |
+          dart setup.dart android --out core
 
       - name: Build Windows core and helper service
         if: matrix.platform == 'Windows'
@@ -96,7 +108,7 @@ jobs:
         run: |
           mkdir -p libclash/windows
           dart setup.dart windows --arch amd64 --out core
-          TOKEN="$(sha256sum libclash/windows/FlClashCore.exe | awk '{print $1}')"
+          TOKEN="$(sha256sum libclash/windows/amd64/FlClashCore.exe | awk '{print $1}')"
           TOKEN="$TOKEN" cargo build --release --features windows-service --manifest-path services/helper/Cargo.toml
           cp services/helper/target/release/helper.exe libclash/windows/FlClashHelperService.exe
 
