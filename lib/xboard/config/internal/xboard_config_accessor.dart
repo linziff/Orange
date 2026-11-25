@@ -208,6 +208,11 @@ class XBoardConfigAccessor {
     return _onlineSupportService?.getAllConfigs() ?? [];
   }
 
+  /// Get the remotely configured Crisp Website ID for the embedded support view.
+  String? getCrispWebsiteId() {
+    return _onlineSupportService?.getCrispWebsiteId();
+  }
+
   /// 获取订阅配置信息
   SubscriptionInfo? getSubscriptionInfo() {
     return _currentConfig?.subscription;
