@@ -1,3 +1,4 @@
+import 'dart:async';
 /// XBoard 配置模块 - 主入口
 /// 
 /// 这是重构后的XBoard配置模块，提供清晰的分层架构和统一的API接口
@@ -154,13 +155,20 @@ class XBoardConfig {
   }) async {
     final config = settings ?? ConfigSettings(currentProvider: provider);
     
+    // Do not hold the first Flutter frame while remote panel endpoints are
+    // being fetched. The original configuration/racing/subscription logic is
+    // retained; only the network warm-up is moved to the background.
     _instance = await ModuleInitializer.createConfigAccessor(
       settings: config,
-      autoWarmUp: true,
+      autoWarmUp: false,
     );
-    
+
     // 创建配置提供者实例
     _provider = _XBoardConfigProvider(_instance!);
+
+    // Warm up all configured sources asynchronously. refreshConfiguration
+    // records errors in accessor state and does not throw to the app startup.
+    unawaited(_instance!.refreshConfiguration());
   }
   
   /// 获取配置提供者接口（供SDK层使用）
