@@ -1,5 +1,5 @@
 # QNDXX XBoard runtime configuration
-# Keep this file aligned with the documented XBoard configuration schema.
+# Kept compatible with the full XBoard configuration schema.
 
 xboard:
   # Must exactly match the key in the remote JSON: panels.QNDXX
@@ -8,34 +8,30 @@ xboard:
   # Primary and fallback remote configuration endpoints.
   remote_config:
     sources:
-      # User-provided backup endpoint. Do not invent a primary endpoint:
-      # add the real primary URL when it is confirmed.
-      - name: backup
+      - name: primary
         url: https://img.toufq.com/speed/blob/main/url/config.json
+        priority: 100
+      - name: backup
+        url: https://toufq.com/speed/blob/main/config.json
         priority: 90
     max_retries: 3
     timeout_seconds: 15
     retry_delay_seconds: 2
 
-  # App identity displayed by XBoard login UI.
+  # App information shown by the XBoard login UI.
   app:
     title: QNDXX
     website: qndxx.app
 
-  # Subscription configuration.
+  # Subscription configuration. Keep the original fields; backend secrets
+  # must be supplied from the actual XBoard deployment, never guessed.
   subscription:
     prefer_encrypt: false
-    # Fill this only with the AES-256-CBC key configured by the XBoard backend.
-    # An empty value avoids shipping a fabricated key.
     decrypt_key: ""
 
-  # No backend-specific obfuscation / authentication values were supplied.
-  # Keep obfuscation disabled rather than shipping example placeholder secrets.
   security:
     obfuscation_prefix: ""
     user_agents:
-      # Must match the backend's Caddy/API authentication User-Agent.
-      # Keep empty until the real backend value is supplied; do not use the example placeholder.
       api_encrypted: ""
       domain_racing_test: FlClash/1.0 (Domain Racing Test)
 
