@@ -195,86 +195,92 @@ class EncryptedSubscriptionService {
     _logger.info('[数据获取] 开始获取加密数据，最大重试次数: $maxRetries');
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      HttpClient? client;
       try {
         _logger.debug('[数据获取] 第 $attempt/$maxRetries 次请求: $url');
 
-        final client = HttpClient();
-        client.connectionTimeout = requestTimeout;
-        
+        client = HttpClient()..connectionTimeout = requestTimeout;
         final uri = Uri.parse(url);
-        final request = await client.getUrl(uri);
-        
+        if ((uri.scheme != 'http' && uri.scheme != 'https') || uri.host.isEmpty) {
+          return DataResult.failure('订阅URL无效');
+        }
+        final request = await client.getUrl(uri).timeout(requestTimeout);
+
         // 设置请求头（服务端需要FlClash标识配合密钥获取Clash配置格式）
         final userAgent = await UserAgentConfig.get(UserAgentScenario.subscription);
         request.headers.set(HttpHeaders.userAgentHeader, userAgent);
         request.headers.set(HttpHeaders.acceptHeader, '*/*');
-        
+
         final response = await request.close().timeout(requestTimeout);
-        
         _logger.debug('[数据获取] HTTP状态码: ${response.statusCode}');
 
         if (response.statusCode == 200) {
-          final responseBody = await response.transform(utf8.decoder).join();
-          final subscriptionUserInfo = response.headers.value('subscription-userinfo');
-          client.close();
+          final responseBody = await response
+              .transform(utf8.decoder)
+              .join()
+              .timeout(requestTimeout);
+          final subscriptionUserInfo =
+              response.headers.value('subscription-userinfo');
 
-          _logger.debug('[数据获取] ✅ 响应成功，数据长度: ${responseBody.length}');
+          _logger.debug('[数据获取] 响应成功，数据长度: ${responseBody.length}');
           if (subscriptionUserInfo != null) {
-            _logger.debug('[数据获取] 📊 获取到订阅信息: $subscriptionUserInfo');
+            _logger.debug('[数据获取] 获取到订阅信息: $subscriptionUserInfo');
           }
 
           // 尝试解析JSON响应
           try {
             final jsonData = jsonDecode(responseBody);
             if (jsonData is Map<String, dynamic> && jsonData.containsKey('data')) {
-              _logger.debug('[数据获取] 📄 检测到JSON格式响应，提取data字段');
-              final dataContent = jsonData['data'] as String;
-              _logger.debug('[数据获取] 🔐 提取到加密数据长度: ${dataContent.length}');
-              return DataResult.success(dataContent, subscriptionUserInfo: subscriptionUserInfo);
+              final dataContent = jsonData['data'];
+              if (dataContent is String) {
+                return DataResult.success(
+                  dataContent,
+                  subscriptionUserInfo: subscriptionUserInfo,
+                );
+              }
+              return DataResult.failure('订阅响应中的 data 字段不是字符串');
             }
-          } catch (e) {
-            _logger.debug('[数据获取] 📄 非JSON格式响应，直接返回原始内容');
-            // 如果不是JSON，直接返回响应体
+          } on FormatException {
+            // 非JSON响应按原始订阅内容处理。
           }
 
-          _logger.debug('[数据获取] 🔐 返回原始响应内容作为加密数据');
-          return DataResult.success(responseBody, subscriptionUserInfo: subscriptionUserInfo);
-          
-        } else {
-          client.close();
-          
-          if (attempt < maxRetries) {
-            _logger.warning('[数据获取] ⚠️ 请求失败，状态码: ${response.statusCode}，${attempt * 2}秒后进行第${attempt + 1}次重试...');
-            await Future.delayed(Duration(seconds: attempt * 2));
-            continue;
-          } else {
-            _logger.error('[数据获取] 💥 请求最终失败，状态码: ${response.statusCode}，已达到最大重试次数');
-            return DataResult.failure('HTTP请求失败: ${response.statusCode}');
-          }
+          return DataResult.success(
+            responseBody,
+            subscriptionUserInfo: subscriptionUserInfo,
+          );
         }
-        
+
+        // Drain non-success responses before retrying.
+        await response.drain<void>().timeout(requestTimeout);
+        if (attempt < maxRetries) {
+          _logger.warning(
+            '[数据获取] HTTP ${response.statusCode}，${attempt * 2}秒后重试...',
+          );
+          await Future.delayed(Duration(seconds: attempt * 2));
+          continue;
+        }
+        return DataResult.failure('HTTP请求失败: ${response.statusCode}');
       } on TimeoutException {
         if (attempt < maxRetries) {
-          _logger.warning('[数据获取] ⏰ 请求超时，${attempt * 2}秒后进行第${attempt + 1}次重试...');
+          _logger.warning('[数据获取] 请求超时，${attempt * 2}秒后重试...');
           await Future.delayed(Duration(seconds: attempt * 2));
           continue;
-        } else {
-          _logger.error('[数据获取] 💥 请求最终超时，已达到最大重试次数');
-          return DataResult.failure('请求超时');
         }
+        return DataResult.failure('请求超时');
       } catch (e) {
         if (attempt < maxRetries) {
-          _logger.warning('[数据获取] ⚠️ 请求异常: $e，${attempt * 2}秒后进行第${attempt + 1}次重试...');
+          _logger.warning('[数据获取] 请求异常: $e，${attempt * 2}秒后重试...');
           await Future.delayed(Duration(seconds: attempt * 2));
           continue;
-        } else {
-          _logger.error('[数据获取] 💥 请求最终异常: $e，已达到最大重试次数');
-          return DataResult.failure('请求异常: $e');
         }
+        return DataResult.failure('请求异常: $e');
+      } finally {
+        // Also close the socket when DNS, headers, body streaming, or timeout
+        // failures occur; previously those paths leaked an HttpClient.
+        client?.close(force: true);
       }
     }
 
-    _logger.error('[数据获取] 💥 所有重试都失败了，已尝试 $maxRetries 次');
     return DataResult.failure('所有重试都失败了');
   }
 
