@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_clash/xboard/features/auth/auth.dart';
 import 'package:fl_clash/xboard/services/services.dart';
 import 'package:fl_clash/xboard/features/profile/providers/profile_import_provider.dart';
@@ -28,11 +29,13 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
   Future<bool> quickAuth() async {
     try {
       _logger.info('快速认证检查：检查登录状态...');
-      final hasToken = await XBoardSDK.instance.hasToken()
-          .timeout(const Duration(seconds: 5), onTimeout: () {
-        _logger.info('快速认证超时，假设无token');
-        return false;
-      });
+      // Read the SDK's persisted token directly. XBoardSDK.hasToken()
+      // requires initialize(), which depends on remote domain selection.
+      // The SDK TokenManager uses this stable SharedPreferences key.
+      final preferences = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      final token = preferences.getString('xboard_token');
+      final hasToken = token != null && token.isNotEmpty;
       
       if (hasToken) {
         String? email;
