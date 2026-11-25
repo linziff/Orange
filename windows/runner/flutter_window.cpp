@@ -27,8 +27,10 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  // Show the native window after Flutter has rendered its first frame.
+  // Keep the original Dart startup sequence unchanged.
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
-
+    this->Show();
   });
 
   // Flutter can complete the first frame before the "show window" callback is
