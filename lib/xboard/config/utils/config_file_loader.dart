@@ -243,10 +243,13 @@ extension ConfigFileLoaderHelper on ConfigFileLoader {
   
   /// 获取证书配置
   static Future<Map<String, dynamic>> getCertificateConfig() async {
-    // 硬编码证书配置，不再从配置文件读取
+    // No certificate asset is shipped in this repository. Do not advertise a
+    // missing bundle path as an enabled certificate/pinning configuration.
+    // HttpClient will use the platform trust store unless a real certificate
+    // asset is added and explicitly configured.
     return {
-      'path': 'assets/cer/client-cert.crt',
-      'enabled': true,
+      'path': '',
+      'enabled': false,
     };
   }
   
