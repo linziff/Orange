@@ -26,7 +26,7 @@ class SubscriptionDownloader {
     bool enableRacing = true,
   }) async {
     try {
-      _logger.info('开始下载订阅: $url');
+      _logger.info('开始下载订阅（地址已隐藏）');
       
       final _DownloadResult result;
       
@@ -112,16 +112,16 @@ class SubscriptionDownloader {
       return finalProfile;
       
     } on TimeoutException catch (e) {
-      _logger.error('订阅下载超时', e);
+      _logger.error('订阅下载超时（详细信息已隐藏）');
       throw Exception('下载超时: ${e.message}');
     } on SocketException catch (e) {
-      _logger.error('网络连接失败', e);
+      _logger.error('订阅网络连接失败（详细信息已隐藏）');
       throw Exception('网络连接失败: ${e.message}');
     } on HttpException catch (e) {
-      _logger.error('HTTP请求失败', e);
+      _logger.error('订阅 HTTP 请求失败（详细信息已隐藏）');
       throw Exception('HTTP请求失败: ${e.message}');
     } catch (e) {
-      _logger.error('订阅下载失败', e);
+      _logger.error('订阅下载失败（详细信息已隐藏）');
       rethrow;
     }
   }
@@ -145,7 +145,7 @@ class SubscriptionDownloader {
         
         // 如果所有任务都失败了，抛出第一个错误
         if (failedCount == tasks.length && !completer.isCompleted) {
-          _logger.error('所有下载任务都失败了', errors.first);
+          _logger.error('所有订阅下载任务均失败（详细信息已隐藏）');
           completer.completeError(errors.first);
         }
       });
@@ -162,7 +162,7 @@ class SubscriptionDownloader {
     required _CancelToken cancelToken,
     required int taskIndex,
   }) async {
-    final connectionType = useProxy ? '代理($proxyUrl)' : '直连';
+    final connectionType = useProxy ? '代理' : '直连';
     _logger.info('[任务$taskIndex] 开始下载: $connectionType');
     
     try {
@@ -187,7 +187,7 @@ class SubscriptionDownloader {
       if (cancelToken.isCancelled) {
         _logger.info('[任务$taskIndex] 已取消: $connectionType');
       } else {
-        _logger.warning('[任务$taskIndex] 下载失败: $connectionType - $e');
+        _logger.warning('[任务$taskIndex] 下载失败: $connectionType（详细信息已隐藏）');
       }
       rethrow;
     }
@@ -349,14 +349,14 @@ class SubscriptionDownloader {
     // 解析 host:port
     final colonIndex = hostPort.lastIndexOf(':');
     if (colonIndex == -1) {
-      throw FormatException('代理配置格式错误，缺少端口号: $proxyUrl');
+      throw const FormatException('代理配置格式错误，缺少端口号');
     }
 
     final host = hostPort.substring(0, colonIndex);
     final port = hostPort.substring(colonIndex + 1);
 
     if (host.isEmpty || port.isEmpty) {
-      throw FormatException('代理配置格式错误: $proxyUrl');
+      throw const FormatException('代理配置格式错误');
     }
 
     return {
