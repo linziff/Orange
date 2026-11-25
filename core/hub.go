@@ -108,6 +108,10 @@ func handleChangeProxy(data string, fn func(string string)) {
 			fn(err.Error())
 			return
 		}
+		if params.GroupName == nil || params.ProxyName == nil {
+			fn("Missing group or proxy name")
+			return
+		}
 		groupName := *params.GroupName
 		proxyName := *params.ProxyName
 		proxies := tunnel.Proxies()
@@ -116,7 +120,11 @@ func handleChangeProxy(data string, fn func(string string)) {
 			fn("Not found group")
 			return
 		}
-		adapterProxy := group.(*adapter.Proxy)
+		adapterProxy, ok := group.(*adapter.Proxy)
+		if !ok {
+			fn("Group is not a proxy adapter")
+			return
+		}
 		selector, ok := adapterProxy.ProxyAdapter.(outboundgroup.SelectAble)
 		if !ok {
 			fn("Group is not selectable")
