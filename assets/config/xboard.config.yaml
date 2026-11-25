@@ -1,7 +1,7 @@
 # QNDXX XBoard runtime configuration
 # The remote endpoint is managed independently from the application binary.
 xboard:
-  provider: TouVPN
+  provider: QNDXX
   remote_config:
     sources:
       - name: redirect
