@@ -25,10 +25,10 @@ xboard:
   # 应用信息
   app:
     # 登录页面显示的标题
-    title: QNDXX
+    title: 青年大学习
     
     # 登录页面显示的网站地址
-    website: https://www.toufq.com
+    website: 官网发布页：qndxx.uk
   
   # 订阅配置
   subscription:
@@ -58,7 +58,7 @@ xboard:
       api_encrypted: Mozilla/5.0 (compatible; YOUR_ENCRYPTED_STRING_HERE)
       
       # 域名竞速测试 UA
-      domain_racing_test: FlClash/1.0 (Domain Racing Test)
+      domain_racing_test: QNDXX/5.2.1 (Domain Racing Test)
     
 
 
