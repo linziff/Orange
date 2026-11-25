@@ -45,16 +45,16 @@ class EncryptedSubscriptionService {
         return SubscriptionResult.failure('订阅URL为空');
       }
 
-      _logger.info('获取到订阅URL: $subscribeUrl');
+      _logger.info('已获取订阅地址（内容已隐藏）');
 
       // 2. 从订阅URL中提取订阅token（不是Auth Token！）
       final token = _extractTokenFromSubscriptionUrl(subscribeUrl);
       
       if (token == null || token.isEmpty) {
-        return SubscriptionResult.failure('无法从订阅URL中提取token: $subscribeUrl');
+        return SubscriptionResult.failure('无法从订阅地址中提取订阅凭据');
       }
 
-      _logger.info('从订阅URL提取到订阅token: ${token.substring(0, 8)}...');
+      _logger.info('已提取订阅凭据（内容已隐藏）');
 
       // 3. 使用订阅token获取加密订阅
       return await getEncryptedSubscription(
@@ -113,7 +113,7 @@ class EncryptedSubscriptionService {
     bool enableRace = true,
   }) async {
     try {
-      _logger.info('开始获取加密订阅，token: ${token.substring(0, 8)}..., 竞速模式: $enableRace');
+      _logger.info('开始获取加密订阅，竞速模式: $enableRace');
 
       // 1. 获取订阅配置
       final subscriptionInfo = XBoardConfig.subscriptionInfo;
@@ -130,20 +130,20 @@ class EncryptedSubscriptionService {
           token,
           preferEncrypt: preferEncrypt,
         );
-        _logger.info('[订阅竞速] 🏆 竞速完成，最快URL: $subscriptionUrl');
+        _logger.info('[订阅竞速] 已完成订阅源选择（地址已隐藏）');
       } else {
         subscriptionUrl = subscriptionInfo.buildSubscriptionUrl(
           token, 
           forceEncrypt: preferEncrypt
         );
-        _logger.debug('[订阅服务] 使用默认URL（无需竞速）: $subscriptionUrl');
+        _logger.debug('[订阅服务] 使用默认订阅源（地址已隐藏）');
       }
       
       if (subscriptionUrl == null) {
         return SubscriptionResult.failure('无法构建订阅URL');
       }
 
-      _logger.debug('[订阅服务] 最终使用URL: $subscriptionUrl');
+      _logger.debug('[订阅服务] 已确定订阅源（地址已隐藏）');
 
       // 3. 获取加密数据
       final encryptedData = await _fetchEncryptedData(subscriptionUrl);
@@ -166,7 +166,7 @@ class EncryptedSubscriptionService {
         return SubscriptionResult.failure('解密失败: ${decryptResult.message}');
       }
 
-      _logger.info('[订阅服务] 🎉 解密成功！使用密钥: ${decryptResult.keyUsed?.substring(0, 8)}..., 解密内容长度: ${decryptResult.content.length}');
+      _logger.info('[订阅服务] 解密成功，解密内容长度: ${decryptResult.content.length}');
 
       // 记录解密内容的基本统计信息
       final lines = decryptResult.content.split('\n');
@@ -196,7 +196,7 @@ class EncryptedSubscriptionService {
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        _logger.debug('[数据获取] 第 $attempt/$maxRetries 次请求: $url');
+        _logger.debug('[数据获取] 第 $attempt/$maxRetries 次请求（地址已隐藏）');
 
         final client = HttpClient();
         client.connectionTimeout = requestTimeout;
