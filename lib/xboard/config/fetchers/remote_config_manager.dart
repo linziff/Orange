@@ -406,6 +406,8 @@ class RemoteConfigManager {
       sources: sources,
       maxRetries: settings.maxRetries,
       retryDelay: settings.retryDelay,
+      // QNDXX primary/backup sources are tried in order, not raced together.
+      enableConcurrentFetch: false,
     );
   }
 
@@ -445,17 +447,19 @@ class RemoteConfigManager {
       redirectResult = results[0];
       giteeResult = results[1];
     } else {
-      // 串行请求
+      // Primary-first failover: only contact the backup if primary fails.
       if (redirectSource != null) {
         redirectResult = await _fetchWithRetry(redirectSource);
       } else {
-        redirectResult = ConfigResult.failure('重定向配置源未注册', 'redirect');
+        redirectResult = ConfigResult.failure('主配置源未注册', 'redirect');
       }
 
-      if (giteeSource != null) {
+      if (redirectResult.isSuccess) {
+        giteeResult = ConfigResult.failure('主配置源可用，未请求备用源', 'gitee');
+      } else if (giteeSource != null) {
         giteeResult = await _fetchWithRetry(giteeSource);
       } else {
-        giteeResult = ConfigResult.failure('Gitee配置源未注册', 'gitee');
+        giteeResult = ConfigResult.failure('备用配置源未注册', 'gitee');
       }
     }
 
