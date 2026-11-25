@@ -252,6 +252,9 @@ class XBoardConfig {
   
   /// 获取第一个更新URL
   static String? get updateUrl => _accessor.getFirstUpdateUrl();
+
+  /// Remote Crisp Website ID used by the embedded in-app support view.
+  static String? get crispWebsiteId => _accessor.getCrispWebsiteId();
   
   /// 获取面板配置列表
   static List<ConfigEntry> get panelList => _accessor.getPanelConfigList();
