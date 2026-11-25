@@ -1,5 +1,6 @@
 name: QNDXX 5.2.1 Multi-platform Build
 
+# Build Android, Windows, and macOS artifacts for the QNDXX branch.
 on:
   workflow_dispatch:
   push:
