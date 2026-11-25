@@ -153,7 +153,21 @@ class Build {
       assert(ndk != null);
       final prebuiltDir =
           Directory(join(ndk!, "toolchains", "llvm", "prebuilt"));
-      final prebuiltDirList = prebuiltDir.listSync();
+      final hostToolchain = Platform.isLinux
+          ? "linux-x86_64"
+          : Platform.isMacOS
+              ? "darwin-x86_64"
+              : Platform.isWindows
+                  ? "windows-x86_64"
+                  : throw UnsupportedError(
+                      "Unsupported NDK host platform: ${Platform.operatingSystem}",
+                    );
+      final hostPrebuiltDir = Directory(join(prebuiltDir.path, hostToolchain));
+      if (!hostPrebuiltDir.existsSync()) {
+        throw StateError(
+          "Android NDK host toolchain not found: ${hostPrebuiltDir.path}",
+        );
+      }
       final map = {
         "armeabi-v7a": "armv7a-linux-androideabi21-clang",
         "arm64-v8a": "aarch64-linux-android21-clang",
@@ -161,7 +175,7 @@ class Build {
         "x86_64": "x86_64-linux-android21-clang"
       };
       return join(
-        prebuiltDirList.first.path,
+        hostPrebuiltDir.path,
         "bin",
         map[buildItem.archName],
       );
@@ -242,6 +256,7 @@ class Build {
       if (file.existsSync()) {
         file.deleteSync(recursive: true);
       }
+      Directory(outFileDir).createSync(recursive: true);
 
       final fileName = isLib
           ? "$libName${item.target.dynamicLibExtensionName}"
