@@ -85,8 +85,14 @@ func handleShutdown() bool {
 }
 
 func handleValidateConfig(bytes []byte) string {
-	_, err := config.UnmarshalRawConfig(bytes)
+	rawConfig, err := config.UnmarshalRawConfig(bytes)
 	if err != nil {
+		return err.Error()
+	}
+	// Syntax-only YAML decoding is not enough: build the complete Mihomo
+	// configuration so unsupported or malformed outbound options are rejected
+	// before the profile is saved and reported as imported successfully.
+	if _, err = config.ParseRawConfig(rawConfig); err != nil {
 		return err.Error()
 	}
 	return ""
