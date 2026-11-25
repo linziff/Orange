@@ -48,7 +48,7 @@ abstract interface class ConfigProviderInterface {
   ///
   /// [token] 用户订阅 token
   /// [preferEncrypt] 是否优先使用加密链接
-  String? buildSubscriptionUrl(String token, {bool preferEncrypt = true});
+  String? buildSubscriptionUrl(String token, {bool? preferEncrypt});
 
   // ===== 高级功能 =====
 
