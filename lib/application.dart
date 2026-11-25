@@ -72,13 +72,28 @@ class ApplicationState extends ConsumerState<Application> {
       if (currentContext != null) {
         globalState.appController = AppController(currentContext, ref);
       }
-      await globalState.appController.init();
-      globalState.appController.initLink();
-      app?.initShortcuts();
-      
-      // ✅ 等待初始化完成后再执行快速认证
+      // Core/系统初始化失败不能阻止 Flutter 页面进入首帧。
+      // 保留原有初始化顺序；失败时记录阶段并继续认证状态收敛，
+      // 避免路由因 isInitialized=false 永久停留在 /loading。
+      try {
+        await globalState.appController.init();
+      } catch (e, stackTrace) {
+        debugPrint('[Application] 控制器初始化失败（${e.runtimeType}）');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+
+      try {
+        globalState.appController.initLink();
+        app?.initShortcuts();
+      } catch (e, stackTrace) {
+        debugPrint('[Application] 桌面集成初始化失败（${e.runtimeType}）');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+
+      // 无论 Core 初始化是否成功，都必须完成认证状态初始化，
+      // 否则 GoRouter 会一直重定向到 /loading。
       _performQuickAuthWithDomainService();
-      
+
       // 启动后检查更新
       _checkForUpdates();
       
@@ -104,12 +119,15 @@ class ApplicationState extends ConsumerState<Application> {
           }
           
           if (!ref.read(initializationProvider).isReady) {
-            debugPrint('[Application] 初始化超时，跳过快速认证');
-            return;
+            // 域名/SDK 初始化失败或超时，不再永久停留在加载路由。
+            // quickAuth 内部会捕获 SDK 未就绪异常，并将 isInitialized 置为 true，
+            // 让用户至少能进入登录页；网络恢复后可由初始化重试流程恢复 SDK。
+            debugPrint('[Application] XBoard 初始化未就绪，继续完成认证状态初始化');
           }
         }
-        
-        // SDK 已初始化，执行快速认证
+
+        // SDK 就绪时正常快速认证；SDK 未就绪时 quickAuth 会安全降级，
+        // 确保认证状态最终完成，避免 /loading 永久循环。
         final userNotifier = ref.read(xboardUserProvider.notifier);
         await userNotifier.quickAuth();
         
