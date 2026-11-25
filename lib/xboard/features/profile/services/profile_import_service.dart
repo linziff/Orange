@@ -281,7 +281,12 @@ class XBoardProfileImportService {
 
       // Apply through the real core before deleting any previously working profile.
       await globalState.appController.applyProfile(silence: true);
-      _logger.info('新订阅已通过核心验证并成功应用');
+      final loadedGroups = _ref.read(groupsProvider);
+      final hasLoadedNodes = loadedGroups.any((group) => group.all.isNotEmpty);
+      if (!hasLoadedNodes) {
+        throw Exception('核心未加载出可用节点，请检查订阅内容');
+      }
+      _logger.info('新订阅已通过核心验证并加载出可用节点');
     } catch (e) {
       // Roll back the newly inserted profile and restore the previously active one.
       try {
