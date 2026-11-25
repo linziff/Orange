@@ -159,14 +159,14 @@ class EncryptedSubscriptionService {
       final decryptResult = XBoardDecryptHelper.smartDecrypt(
         encryptedData.data!,
         configuredKey: decryptKey,
-        tryFallback: true, // 允许尝试备用密钥
+        tryFallback: false, // Only the explicitly configured key is trusted.
       );
       if (!decryptResult.success) {
         _logger.error('[订阅服务] 💥 解密失败: ${decryptResult.message}');
         return SubscriptionResult.failure('解密失败: ${decryptResult.message}');
       }
 
-      _logger.info('[订阅服务] 🎉 解密成功！使用密钥: ${decryptResult.keyUsed?.substring(0, 8)}..., 解密内容长度: ${decryptResult.content.length}');
+      _logger.info('[订阅服务] 🎉 解密成功！解密内容长度: ${decryptResult.content.length}');
 
       // 记录解密内容的基本统计信息
       final lines = decryptResult.content.split('\n');
