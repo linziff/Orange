@@ -34,20 +34,9 @@ Future<void> main() async {
   // 首先初始化XBoard配置模块和域名服务（必须在RemoteTaskManager之前）
   await _initializeXBoardServices();
 
-  // 初始化 RemoteTaskManager - 非阻塞模式，失败不影响应用启动
-  try {
-    remoteTaskManager = await RemoteTaskManager.create();
-    if (remoteTaskManager != null) {
-      remoteTaskManager!.initialize(); // 初始化管理器
-      remoteTaskManager!.start(); // 启动 WebSocket 连接
-      print('RemoteTaskManager 从配置初始化成功');
-    } else {
-      print('警告: RemoteTaskManager 初始化失败 - 配置中未找到 WebSocket URL，应用将继续启动但远程任务功能不可用');
-    }
-  } catch (e) {
-    print('警告: RemoteTaskManager 初始化异常: $e，应用将继续启动但远程任务功能不可用');
-    remoteTaskManager = null;
-  }
+  // RemoteTaskManager depends on the remote WebSocket URL. Initialize it
+  // after the background remote-config warm-up, without delaying the first frame.
+  unawaited(_initializeRemoteTaskManager());
 
   try {
     final version = await system.version;
@@ -69,6 +58,25 @@ Future<void> main() async {
     debugPrint('[Main] 应用启动失败: $e');
     debugPrintStack(stackTrace: stackTrace);
     runApp(_QndxxStartupErrorApp(error: e, stackTrace: stackTrace));
+  }
+}
+
+
+Future<void> _initializeRemoteTaskManager() async {
+  try {
+    await XBoardConfig.waitForRemoteConfig();
+    remoteTaskManager = await RemoteTaskManager.create();
+    if (remoteTaskManager != null) {
+      remoteTaskManager!.initialize();
+      remoteTaskManager!.start();
+      debugPrint('[Main] RemoteTaskManager 初始化成功');
+    } else {
+      debugPrint('[Main] 未配置 WebSocket URL，远程任务功能暂不可用');
+    }
+  } catch (e, stackTrace) {
+    debugPrint('[Main] RemoteTaskManager 初始化失败: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    remoteTaskManager = null;
   }
 }
 
