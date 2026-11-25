@@ -95,37 +95,18 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
       appBar: isDesktop ? null : AppBar(
         automaticallyImplyLeading: false,
         leadingWidth: 144,
-        leading: SizedBox(
-          width: 136,
-          height: 40,
-          child: TextButton.icon(
-            icon: const Icon(Icons.support_agent, size: 18),
-            label: Text(appLocalizations.onlineSupport, maxLines: 1, overflow: TextOverflow.ellipsis),
-            onPressed: () => context.push('/support'),
-            style: TextButton.styleFrom(
-              fixedSize: const Size(136, 40),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              tapTargetSize: MaterialTapTargetSize.padded,
-              visualDensity: VisualDensity.standard,
-            ),
-          ),
+        leading: _buildHeaderAction(
+          icon: Icons.support_agent,
+          label: appLocalizations.onlineSupport,
+          onPressed: () => context.push('/support'),
         ),
         actions: [
-          SizedBox(
-            width: 136,
-            height: 40,
-            child: TextButton.icon(
-              icon: const Icon(Icons.card_giftcard, size: 18),
-              label: Text(appLocalizations.xboardPlanInfo, maxLines: 1, overflow: TextOverflow.ellipsis),
-              onPressed: () => context.push('/plans'),
-              style: TextButton.styleFrom(
-                fixedSize: const Size(136, 40),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                tapTargetSize: MaterialTapTargetSize.padded,
-                visualDensity: VisualDensity.standard,
-              ),
-            ),
+          _buildHeaderAction(
+            icon: Icons.card_giftcard,
+            label: appLocalizations.xboardPlanInfo,
+            onPressed: () => context.push('/plans'),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Consumer(
@@ -215,6 +196,32 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
       ),
     );
   }
+  /// Header actions share one fixed box and one style so their visual
+  /// dimensions remain identical on different Android screen densities.
+  Widget _buildHeaderAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: 136,
+      height: 40,
+      child: TextButton.icon(
+        icon: Icon(icon, size: 18),
+        label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          fixedSize: const Size(136, 40),
+          minimumSize: const Size(136, 40),
+          maximumSize: const Size(136, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.standard,
+        ),
+      ),
+    );
+  }
+
   Widget _buildUsageSection() {
     return Consumer(
       builder: (context, ref, child) {
