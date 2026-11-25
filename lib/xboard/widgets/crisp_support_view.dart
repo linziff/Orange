@@ -61,12 +61,12 @@ class _CrispSupportViewState extends State<CrispSupportView> {
     window.CRISP_WEBSITE_ID = $websiteId;
     window.\$crisp = [];
     window.\$crisp.push(["safe", true]);
+    window.\$crisp.push(["on", "session:loaded", function() {
+      window.flutter_inappwebview.callHandler("crispLoaded");
+    }]);
     var crispScript = document.createElement("script");
     crispScript.src = "https://client.crisp.chat/l.js";
     crispScript.async = true;
-    crispScript.onload = function() {
-      window.flutter_inappwebview.callHandler("crispLoaded");
-    };
     crispScript.onerror = function() {
       window.flutter_inappwebview.callHandler("crispLoadFailed");
     };
