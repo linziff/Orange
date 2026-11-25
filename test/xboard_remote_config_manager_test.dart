@@ -1,8 +1,49 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fl_clash/xboard/config/core/config_settings.dart';
 import 'package:fl_clash/xboard/config/fetchers/remote_config_manager.dart';
+import 'package:fl_clash/xboard/config/models/subscription_info.dart';
 
 void main() {
+  group('XBoard subscription endpoint preference', () {
+    test('selects v1 when encryption is not preferred and v2 when preferred', () {
+      final subscription = SubscriptionInfo.fromJson({
+        'enableEncrypt': true,
+        'urls': [
+          {
+            'url': 'https://panel.example',
+            'description': 'test panel',
+            'supportEncrypt': true,
+            'endpoints': {
+              'v1': {
+                'path': '/api/v1/subscription/{token}',
+                'requiresToken': true,
+                'method': 'GET',
+                'description': 'plain',
+                'isEncrypt': false,
+              },
+              'v2': {
+                'path': '/api/v2/subscription-encrypt/{token}',
+                'requiresToken': true,
+                'method': 'GET',
+                'description': 'encrypted',
+                'isEncrypt': true,
+              },
+            },
+          },
+        ],
+      });
+
+      expect(
+        subscription.buildSubscriptionUrl('token', forceEncrypt: false),
+        'https://panel.example/api/v1/subscription/token?flag=flclash',
+      );
+      expect(
+        subscription.buildSubscriptionUrl('token', forceEncrypt: true),
+        'https://panel.example/api/v2/subscription-encrypt/token?flag=flclash',
+      );
+    });
+  });
+
   group('RemoteConfigManager custom JSON sources', () {
     test('parses snake_case encryption key and configured priority', () {
       final source = RemoteSourceConfig.fromJson({
