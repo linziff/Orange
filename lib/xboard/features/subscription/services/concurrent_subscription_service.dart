@@ -41,13 +41,13 @@ class ConcurrentSubscriptionService {
         return SubscriptionResult.failure('订阅token无效');
       }
 
-      _logger.info('[竞速订阅] 获取到token: ${token.substring(0, 8)}...');
+      _logger.info('[竞速订阅] 已获取订阅凭据（内容已隐藏）');
 
       // 2. 使用token进行竞速获取
       return await raceGetEncryptedSubscription(token, preferEncrypt: preferEncrypt);
 
     } catch (e) {
-      _logger.error('[竞速订阅] 从登录数据获取失败', e);
+      _logger.error('[竞速订阅] 从登录数据获取失败（详细信息已隐藏）');
       return SubscriptionResult.failure('从登录数据获取订阅失败: $e');
     }
   }
@@ -63,7 +63,7 @@ class ConcurrentSubscriptionService {
     bool preferEncrypt = true,
   }) async {
     try {
-      _logger.info('[竞速订阅] 开始并发竞速获取，token: ${token.substring(0, 8)}...');
+      _logger.info('[竞速订阅] 开始并发竞速获取（凭据已隐藏）');
 
       // 1. 获取所有可用的订阅URL信息
       final subscriptionUrlInfos = _getAllSubscriptionUrlInfos();
@@ -84,7 +84,7 @@ class ConcurrentSubscriptionService {
         final fullUrl = urlInfo.buildSubscriptionUrl(token, preferEncrypt: preferEncrypt);
         if (fullUrl.isNotEmpty) {
           requestUrls.add(fullUrl);
-          _logger.debug('[竞速订阅] 添加请求URL: $fullUrl');
+          _logger.debug('[竞速订阅] 已添加订阅请求（地址已隐藏）');
         }
       }
 
@@ -99,7 +99,7 @@ class ConcurrentSubscriptionService {
       return result;
 
     } catch (e) {
-      _logger.error('[竞速订阅] 并发获取异常', e);
+      _logger.error('[竞速订阅] 并发获取异常（详细信息已隐藏）');
       return SubscriptionResult.failure('并发竞速获取失败: $e');
     }
   }
@@ -114,7 +114,7 @@ class ConcurrentSubscriptionService {
       
       return XBoardConfig.subscriptionUrlList;
     } catch (e) {
-      _logger.error('[竞速订阅] 获取订阅URL列表失败', e);
+      _logger.error('[竞速订阅] 获取订阅源列表失败（详细信息已隐藏）');
       return [];
     }
   }
@@ -234,7 +234,7 @@ class ConcurrentSubscriptionService {
     int index,
   ) async {
     try {
-      _logger.debug('[竞速订阅] 请求 #$index 开始: ${url.length > 50 ? '${url.substring(0, 50)}...' : url}');
+      _logger.debug('[竞速订阅] 请求 #$index 开始（地址已隐藏）');
       
       final result = await _fetchSingleSubscription(url, originalToken)
           .timeout(requestTimeout)
@@ -252,7 +252,7 @@ class ConcurrentSubscriptionService {
       }
 
       if (result.success) {
-        _logger.info('[竞速订阅] 请求 #$index 获胜! 用时: ${result.originalUrl}');
+        _logger.info('[竞速订阅] 请求 #$index 获胜');
       }
 
       return result;
@@ -262,7 +262,7 @@ class ConcurrentSubscriptionService {
         return SubscriptionResult.failure('请求被取消');
       }
       
-      _logger.debug('[竞速订阅] 请求 #$index 失败: $e');
+      _logger.debug('[竞速订阅] 请求 #$index 失败（详细信息已隐藏）');
       return SubscriptionResult.failure('请求失败: $e');
     }
   }
