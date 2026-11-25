@@ -108,11 +108,21 @@ class ProxyCard extends StatelessWidget {
         false => proxy.name,
       };
       final appController = globalState.appController;
-      appController.updateCurrentSelectedMap(
-        groupName,
-        nextProxyName,
-      );
-      await appController.changeProxyDebounce(groupName, nextProxyName);
+      try {
+        // Apply to Mihomo first. Persist the selected map only after the core
+        // confirms the switch, otherwise the UI can display a false selection.
+        await appController.changeProxy(
+          groupName: groupName,
+          proxyName: nextProxyName,
+        );
+        appController.updateCurrentSelectedMap(
+          groupName,
+          nextProxyName,
+        );
+        await appController.updateGroups();
+      } catch (_) {
+        globalState.showNotifier(appLocalizations.checkError);
+      }
       return;
     }
     globalState.showNotifier(
