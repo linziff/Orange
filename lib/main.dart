@@ -49,19 +49,27 @@ Future<void> main() async {
     remoteTaskManager = null;
   }
 
-  final version = await system.version;
-  await clashCore.preload();
-  await globalState.initApp(version);
-  await android?.init();
-  await window?.init(version); // 假设 window?.init(version) 是正确的调用
-  HttpOverrides.global = FlClashHttpOverrides();
+  try {
+    final version = await system.version;
+    await clashCore.preload();
+    await globalState.initApp(version);
+    await android?.init();
+    await window?.init(version);
+    HttpOverrides.global = FlClashHttpOverrides();
 
-  // 注册 WidgetsBindingObserver 来监听应用生命周期事件
-  WidgetsBinding.instance.addObserver(AppLifecycleObserver());
+    // 注册 WidgetsBindingObserver 来监听应用生命周期事件
+    WidgetsBinding.instance.addObserver(AppLifecycleObserver());
 
-  runApp(ProviderScope(
-    child: const Application(),
-  ));
+    runApp(ProviderScope(
+      child: const Application(),
+    ));
+  } catch (e, stackTrace) {
+    // Never leave the native window/splash as an unexplained blank grey screen.
+    // This is the same fail-visible principle used by upstream FlClash startup.
+    debugPrint('[Main] 应用启动失败: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    runApp(_QndxxStartupErrorApp(error: e, stackTrace: stackTrace));
+  }
 }
 
 /// 加载安全配置（证书路径、UA、解密密钥等）
@@ -252,5 +260,64 @@ class _VpnListenerWithService with VpnListener {
   void onDnsChanged(String dns) {
     super.onDnsChanged(dns);
     _onDnsChanged(dns);
+  }
+}
+
+
+/// Visible fallback for failures that happen before the normal app is mounted.
+class _QndxxStartupErrorApp extends StatelessWidget {
+  final Object error;
+  final StackTrace stackTrace;
+
+  const _QndxxStartupErrorApp({
+    required this.error,
+    required this.stackTrace,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'QNDXX',
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'QNDXX 启动失败',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SelectableText(error.toString()),
+                      const SizedBox(height: 12),
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: const Text('启动错误详情'),
+                        children: [
+                          SelectableText(stackTrace.toString()),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
