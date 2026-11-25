@@ -58,10 +58,12 @@ class CrispSupportView extends StatelessWidget {
           data: _html,
           mimeType: 'text/html',
           encoding: 'utf-8',
+          baseUrl: WebUri('https://client.crisp.chat/'),
         ),
         initialSettings: InAppWebViewSettings(
           javaScriptEnabled: true,
           domStorageEnabled: true,
+          thirdPartyCookiesEnabled: true,
           supportZoom: false,
           transparentBackground: false,
           mediaPlaybackRequiresUserGesture: false,
