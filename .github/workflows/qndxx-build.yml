@@ -1,15 +1,8 @@
 name: QNDXX multi-platform build
 
+# Build is intentionally paused during the QNDXX / FlClash v0.9.4 migration.
+# Re-enable push/tag triggers only after migration and validation are complete.
 on:
-  push:
-    branches:
-      - main
-      - "qndxx/**"
-    tags:
-      - "qndxx-v*"
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
