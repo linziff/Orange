@@ -50,18 +50,20 @@ Future<void> main() async {
   }
 
   final version = await system.version;
-  await clashCore.preload();
   await globalState.initApp(version);
   await android?.init();
-  await window?.init(version); // 假设 window?.init(version) 是正确的调用
+  await window?.init(version);
   HttpOverrides.global = FlClashHttpOverrides();
 
-  // 注册 WidgetsBindingObserver 来监听应用生命周期事件
+  // 先显示 Flutter 首帧；Core 预加载在后台执行，避免原生窗口长期停留在空白/灰色。
   WidgetsBinding.instance.addObserver(AppLifecycleObserver());
-
   runApp(ProviderScope(
     child: const Application(),
   ));
+
+  unawaited(clashCore.preload().catchError((Object error, StackTrace stackTrace) {
+    debugPrint('[Startup] Clash Core 后台预加载失败: $error');
+  }));
 }
 
 /// 加载安全配置（证书路径、UA、解密密钥等）
