@@ -454,8 +454,8 @@ func handleSetupConfig(bytes []byte) string {
 	var params = defaultSetupParams()
 	err := UnmarshalJson(bytes, params)
 	if err != nil {
-		log.Errorln("unmarshalRawConfig error %v", err)
-		_ = setupConfig(defaultSetupParams())
+		log.Errorln("setup params decode failed: %v", err)
+		// Reject malformed requests without replacing the active profile.
 		return err.Error()
 	}
 	err = setupConfig(params)
