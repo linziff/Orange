@@ -34,21 +34,7 @@ Future<void> main() async {
   // 首先初始化XBoard配置模块和域名服务（必须在RemoteTaskManager之前）
   await _initializeXBoardServices();
 
-  // 初始化 RemoteTaskManager - 非阻塞模式，失败不影响应用启动
-  try {
-    remoteTaskManager = await RemoteTaskManager.create();
-    if (remoteTaskManager != null) {
-      remoteTaskManager!.initialize(); // 初始化管理器
-      remoteTaskManager!.start(); // 启动 WebSocket 连接
-      print('RemoteTaskManager 从配置初始化成功');
-    } else {
-      print('警告: RemoteTaskManager 初始化失败 - 配置中未找到 WebSocket URL，应用将继续启动但远程任务功能不可用');
-    }
-  } catch (e) {
-    print('警告: RemoteTaskManager 初始化异常: $e，应用将继续启动但远程任务功能不可用');
-    remoteTaskManager = null;
-  }
-
+  // RemoteTaskManager 依赖远程 JSON 中的 WebSocket 配置，等待配置就绪后再后台启动。
   final version = await system.version;
   await globalState.initApp(version);
   await android?.init();
@@ -64,6 +50,28 @@ Future<void> main() async {
   unawaited(clashCore.preload().catchError((Object error, StackTrace stackTrace) {
     debugPrint('[Startup] Clash Core 后台预加载失败: $error');
   }));
+
+  unawaited(_initializeRemoteTaskManagerWhenConfigReady());
+}
+
+
+/// 等待远程 XBoard 配置就绪后启动 WebSocket 远程任务服务。
+Future<void> _initializeRemoteTaskManagerWhenConfigReady() async {
+  try {
+    await XBoardConfig.stateChangeStream.firstWhere(
+      (state) => state == ConfigAccessorState.ready,
+    );
+    remoteTaskManager = await RemoteTaskManager.create();
+    if (remoteTaskManager != null) {
+      remoteTaskManager!.initialize();
+      remoteTaskManager!.start();
+      debugPrint('[Startup] RemoteTaskManager 已在配置就绪后启动');
+    } else {
+      debugPrint('[Startup] 当前远程配置未提供 WebSocket URL，远程任务服务保持关闭');
+    }
+  } catch (e, stackTrace) {
+    debugPrint('[Startup] RemoteTaskManager 后台启动失败: $e\\n$stackTrace');
+  }
 }
 
 /// 加载安全配置（证书路径、UA、解密密钥等）
