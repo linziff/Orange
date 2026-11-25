@@ -184,6 +184,12 @@ class XBoardConfig {
     return _provider!;
   }
   
+  /// Wait until the first remote configuration refresh has completed.
+  /// UI startup does not await this, but services that consume remote URLs can.
+  static Future<void> waitForRemoteConfig() async {
+    await _warmUpFuture;
+  }
+
   /// 检查是否已初始化
   static bool get isInitialized => _instance != null;
   
