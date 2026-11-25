@@ -1,8 +1,7 @@
 name: QNDXX 5.2.1 Multi-platform Build
 
-# Build Android, Windows, and macOS artifacts for the QNDXX branch.
-# Automatic builds are intentionally disabled while QNDXX functionality is being repaired.
-# Start a release build manually only after explicit approval.
+# Build Android plus native-architecture Windows and macOS artifacts.
+# Automatic builds are intentionally disabled; use workflow_dispatch only.
 on:
   workflow_dispatch:
 
@@ -11,30 +10,53 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.platform }}
+    name: Build ${{ matrix.platform }} ${{ matrix.arch || '' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: Android
+            arch: all
             os: ubuntu-latest
             command: flutter build apk --release
             artifact: build/app/outputs/flutter-apk/app-release.apk
             artifact_name: QNDXX-Android-5.2.1
+
           - platform: Windows
+            arch: amd64
             os: windows-2022
+            generator: Visual Studio 17 2022
+            flutter_arch: x64
             command: flutter build windows --release
             artifact: build/windows/x64/runner/Release
-            artifact_name: QNDXX-Windows-5.2.1
+            artifact_name: QNDXX-Windows-amd64-5.2.1
+
+          - platform: Windows
+            arch: arm64
+            os: windows-11-arm
+            generator: Visual Studio 18 2026
+            flutter_arch: arm64
+            command: flutter build windows --release
+            artifact: build/windows/arm64/runner/Release
+            artifact_name: QNDXX-Windows-arm64-5.2.1
+
           - platform: macOS
+            arch: amd64
+            os: macos-15-intel
+            command: flutter build macos --release
+            artifact: build/macos/Build/Products/Release
+            artifact_name: QNDXX-macOS-x64-5.2.1
+
+          - platform: macOS
+            arch: arm64
             os: macos-15
             command: flutter build macos --release
             artifact: build/macos/Build/Products/Release
-            artifact_name: QNDXX-macOS-5.2.1
+            artifact_name: QNDXX-macOS-arm64-5.2.1
 
     runs-on: ${{ matrix.os }}
     env:
-      CMAKE_GENERATOR: ${{ matrix.platform == 'Windows' && 'Visual Studio 17 2022' || '' }}
+      CMAKE_GENERATOR: ${{ matrix.generator || '' }}
     steps:
       - name: Checkout QNDXX
         uses: actions/checkout@v4
@@ -109,16 +131,15 @@ jobs:
       - name: Build Android Mihomo core libraries
         if: matrix.platform == 'Android'
         shell: bash
-        run: |
-          dart setup.dart android --out core
+        run: dart setup.dart android --out core
 
-      - name: Build Windows core and helper service
+      - name: Build Windows Mihomo core and helper service
         if: matrix.platform == 'Windows'
         shell: bash
         run: |
           mkdir -p libclash/windows
-          dart setup.dart windows --arch amd64 --out core
-          CORE_SOURCE="libclash/windows/amd64/FlClashCore.exe"
+          dart setup.dart windows --arch ${{ matrix.arch }} --out core
+          CORE_SOURCE="libclash/windows/${{ matrix.arch }}/FlClashCore.exe"
           CORE_TARGET="libclash/windows/FlClashCore.exe"
           test -f "$CORE_SOURCE"
           cp "$CORE_SOURCE" "$CORE_TARGET"
@@ -128,13 +149,16 @@ jobs:
           test -f "$CORE_TARGET"
           test -f libclash/windows/FlClashHelperService.exe
 
-      - name: Build macOS core
+      - name: Build macOS Mihomo core
         if: matrix.platform == 'macOS'
         shell: bash
         run: |
           mkdir -p libclash/macos
-          dart setup.dart macos --arch arm64 --out core
-          dart setup.dart macos --arch amd64 --out core
+          dart setup.dart macos --arch ${{ matrix.arch }} --out core
+          CORE_SOURCE="libclash/macos/${{ matrix.arch }}/FlClashCore"
+          CORE_TARGET="libclash/macos/FlClashCore"
+          test -f "$CORE_SOURCE"
+          cp "$CORE_SOURCE" "$CORE_TARGET"
 
       - name: Build
         shell: bash
