@@ -29,4 +29,4 @@ proxies:
     xhttp-opts:
       host: YOUR_XHTTP_HOST
       path: "/YOUR_XHTTP_PATH"
-      mode: "auto"
+      mode: "stream-one"
