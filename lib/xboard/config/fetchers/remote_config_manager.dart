@@ -99,16 +99,20 @@ class SimpleHttpClient implements IHttpClient {
   @override
   Future<String?> getString(String url, {Duration? timeout}) async {
     HttpClient? client;
+    final requestTimeout = timeout ?? const Duration(seconds: 10);
     try {
       client = HttpClient();
       client.badCertificateCallback = (cert, host, port) => true;
-      client.connectionTimeout = timeout ?? const Duration(seconds: 10);
+      client.connectionTimeout = requestTimeout;
 
       final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close().timeout(timeout);
+      final response = await request.close().timeout(requestTimeout);
 
       if (response.statusCode == 200) {
-        return await response.transform(utf8.decoder).join().timeout(timeout);
+        return await response
+            .transform(utf8.decoder)
+            .join()
+            .timeout(requestTimeout);
       }
 
       return null;
