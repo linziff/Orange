@@ -285,10 +285,12 @@ class XBoardProfileImportService {
       _logger.info('📋 使用 silence 模式应用配置...');
       try {
         await globalState.appController.applyProfile(silence: true);
-        _logger.info('✅ 配置应用成功');
+        _logger.info('配置应用成功');
       } catch (e) {
-        _logger.error('❌ 配置应用失败', e);
-        // 不抛出异常，因为配置已经保存了
+        // Do not report a successful import when Mihomo rejected the profile
+        // or failed to activate it. Keep the detailed error for local logs.
+        _logger.error('配置应用失败', e);
+        rethrow;
       }
       
       _logger.info('配置添加成功: ${profile.label ?? profile.id}');
