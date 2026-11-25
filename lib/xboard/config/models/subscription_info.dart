@@ -88,20 +88,19 @@ class SubscriptionUrlInfo extends ConfigEntry {
 
   /// 获取加密端点
   SubscriptionEndpoint? get encryptEndpoint {
-    try {
-      return endpoints.values.firstWhere((endpoint) => endpoint.isEncrypt);
-    } catch (e) {
-      return endpoints['v2'] ?? (endpoints.isNotEmpty ? endpoints.values.first : null);
+    for (final endpoint in endpoints.values) {
+      if (endpoint.isEncrypt) return endpoint;
     }
+    // An explicit isEncrypt:false from the backend must be respected.
+    return null;
   }
 
   /// 获取普通端点
   SubscriptionEndpoint? get normalEndpoint {
-    try {
-      return endpoints.values.firstWhere((endpoint) => !endpoint.isEncrypt);
-    } catch (e) {
-      return endpoints['v1'] ?? (endpoints.isNotEmpty ? endpoints.values.first : null);
+    for (final endpoint in endpoints.values) {
+      if (!endpoint.isEncrypt) return endpoint;
     }
+    return null;
   }
 
   /// 获取首选端点（优先加密）
@@ -171,11 +170,10 @@ class SubscriptionInfo {
 
   /// 获取第一个支持加密的URL
   SubscriptionUrlInfo? get firstEncryptUrl {
-    try {
-      return urls.firstWhere((url) => url.supportEncrypt);
-    } catch (e) {
-      return urls.isNotEmpty ? urls.first : null;
+    for (final url in urls) {
+      if (url.supportEncrypt && url.encryptEndpoint != null) return url;
     }
+    return null;
   }
 
   /// 获取所有支持加密的URL
@@ -190,10 +188,11 @@ class SubscriptionInfo {
     // The local xboard.subscription.prefer_encrypt setting selects whether
     // the encrypted endpoint is preferred. The remote enableEncrypt flag can
     // still disable encryption globally.
-    final useEncrypt = forceEncrypt && enableEncrypt;
-    final targetUrl = useEncrypt
-        ? firstEncryptUrl ?? urls.first
-        : urls.first;
+    // Prefer encryption only when the backend actually exposes an encrypted
+    // endpoint. Otherwise safely fall back to the normal endpoint.
+    final encryptedUrl = forceEncrypt && enableEncrypt ? firstEncryptUrl : null;
+    final targetUrl = encryptedUrl ?? urls.first;
+    final useEncrypt = encryptedUrl != null;
 
     return targetUrl.buildSubscriptionUrl(token, preferEncrypt: useEncrypt);
   }
