@@ -19,8 +19,6 @@ xboard:
       - name: backup
         url: https://toufq.com/speed/blob/main/config.json
         priority: 90
-        # Gitee源需要提供AES-GCM加密密钥（Base64格式）
-        encryption_key: YOUR_BASE64_ENCODED_AES_KEY_HERE==
 
 
   
