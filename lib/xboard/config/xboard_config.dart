@@ -139,6 +139,10 @@ class XBoardConfig {
   
   // 缓存最后一次竞速结果
   static DomainRacingResult? _lastRacingResult;
+
+  // Shared background warm-up future. Callers that require remote panel data
+  // await this same operation instead of racing an empty in-memory config.
+  static Future<void>? _warmUpFuture;
   
   // 私有构造函数，防止外部实例化
   XBoardConfig._();
@@ -166,9 +170,9 @@ class XBoardConfig {
     // 创建配置提供者实例
     _provider = _XBoardConfigProvider(_instance!);
 
-    // Warm up all configured sources asynchronously. refreshConfiguration
-    // records errors in accessor state and does not throw to the app startup.
-    unawaited(_instance!.refreshConfiguration());
+    // Warm up all configured sources asynchronously. Consumers that need
+    // panel data await this shared future, avoiding an empty-config race.
+    _warmUpFuture = _instance!.refreshConfiguration();
   }
   
   /// 获取配置提供者接口（供SDK层使用）
@@ -192,6 +196,8 @@ class XBoardConfig {
     _instance?.dispose();
     _instance = null;
     _provider = null;
+    _warmUpFuture = null;
+    _racingFuture = null;
     ModuleInitializer.reset();
   }
   
@@ -221,6 +227,13 @@ class XBoardConfig {
   /// 如果所有URL都失败，则返回null
   /// 注意：返回的URL会强制转换为HTTPS格式，以适配SDK的私有证书配置
   static Future<String?> getFastestPanelUrl() async {
+    // Remote config is loaded in the background to keep first-frame startup
+    // responsive. Wait here because domain racing requires the parsed panel list.
+    final warmUp = _warmUpFuture;
+    if (warmUp != null) {
+      await warmUp;
+    }
+
     // 如果已经有正在进行的竞速，直接返回该结果（请求合并）
     if (_racingFuture != null) {
       return _racingFuture;
