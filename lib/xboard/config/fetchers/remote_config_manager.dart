@@ -181,6 +181,44 @@ class RedirectConfigSource implements ConfigSource {
   }
 }
 
+/// Plain JSON backup source. Unlike the legacy Gitee source, it does not
+/// decrypt the response and can be used for a normal HTTPS-hosted JSON file.
+class PlainJsonConfigSource implements ConfigSource {
+  final IHttpClient _httpClient;
+  final String url;
+  final String _sourceName;
+  final Duration timeout;
+
+  PlainJsonConfigSource({
+    IHttpClient? httpClient,
+    required this.url,
+    required String sourceName,
+    Duration? timeout,
+  })  : _httpClient = httpClient ?? SimpleHttpClient(),
+        _sourceName = sourceName,
+        timeout = timeout ?? const Duration(seconds: 10);
+
+  @override
+  String get sourceName => _sourceName;
+
+  @override
+  int get priority => 2;
+
+  @override
+  Future<ConfigResult<Map<String, dynamic>>> fetchConfig() async {
+    try {
+      final rawData = await _httpClient.getString(url, timeout: timeout);
+      if (rawData == null || rawData.trim().isEmpty) {
+        return ConfigResult.failure('备用 JSON 配置源获取失败', sourceName);
+      }
+      final jsonData = json.decode(rawData.trim()) as Map<String, dynamic>;
+      return ConfigResult.success(jsonData, sourceName);
+    } catch (e) {
+      return ConfigResult.failure('备用 JSON 配置源异常: $e', sourceName);
+    }
+  }
+}
+
 /// Gitee配置源实现
 class GiteeConfigSource implements ConfigSource {
   final IHttpClient _httpClient;
@@ -333,20 +371,33 @@ class RemoteConfigManager {
     for (final sourceConfig in settings.sources) {
       switch (sourceConfig.name) {
         case 'redirect':
+        case 'primary':
           sources.add(RedirectConfigSource(
             redirectUrl: sourceConfig.url,
             timeout: sourceConfig.timeout ?? settings.timeout,
           ));
           break;
-        case 'gitee':
-          if (sourceConfig.encryptionKey == null || sourceConfig.encryptionKey!.isEmpty) {
-            throw Exception('Gitee配置源必须提供 encryptionKey');
-          }
-          sources.add(GiteeConfigSource(
-            giteeUrl: sourceConfig.url,
-            encryptionKeyBase64: sourceConfig.encryptionKey!,
+        case 'backup':
+          sources.add(PlainJsonConfigSource(
+            url: sourceConfig.url,
+            sourceName: 'gitee',
             timeout: sourceConfig.timeout ?? settings.timeout,
           ));
+          break;
+        case 'gitee':
+          if (sourceConfig.encryptionKey == null || sourceConfig.encryptionKey!.isEmpty) {
+            sources.add(PlainJsonConfigSource(
+              url: sourceConfig.url,
+              sourceName: 'gitee',
+              timeout: sourceConfig.timeout ?? settings.timeout,
+            ));
+          } else {
+            sources.add(GiteeConfigSource(
+              giteeUrl: sourceConfig.url,
+              encryptionKeyBase64: sourceConfig.encryptionKey!,
+              timeout: sourceConfig.timeout ?? settings.timeout,
+            ));
+          }
           break;
       }
     }
