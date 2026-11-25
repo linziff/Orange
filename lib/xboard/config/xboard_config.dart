@@ -77,8 +77,11 @@ class _XBoardConfigProvider implements ConfigProviderInterface {
   String? getSubscriptionUrl() => getSubscriptionInfo()?.firstUrl;
   
   @override
-  String? buildSubscriptionUrl(String token, {bool preferEncrypt = true}) {
-    return getSubscriptionInfo()?.buildSubscriptionUrl(token, forceEncrypt: preferEncrypt);
+  String? buildSubscriptionUrl(String token, {bool? preferEncrypt}) {
+    return getSubscriptionInfo()?.buildSubscriptionUrl(
+      token,
+      forceEncrypt: preferEncrypt ?? XBoardConfig.preferEncrypt,
+    );
   }
   
   @override
@@ -139,6 +142,10 @@ class XBoardConfig {
   
   // 缓存最后一次竞速结果
   static DomainRacingResult? _lastRacingResult;
+  static bool _preferEncrypt = false;
+
+  /// Preference loaded from xboard.subscription.prefer_encrypt.
+  static bool get preferEncrypt => _preferEncrypt;
 
   // Shared background warm-up future. Callers that require remote panel data
   // await this same operation instead of racing an empty in-memory config.
@@ -158,6 +165,7 @@ class XBoardConfig {
     ConfigSettings? settings,
   }) async {
     final config = settings ?? ConfigSettings(currentProvider: provider);
+    _preferEncrypt = config.subscription.preferEncrypt;
     
     // Do not hold the first Flutter frame while remote panel endpoints are
     // being fetched. The original configuration/racing/subscription logic is
@@ -204,6 +212,7 @@ class XBoardConfig {
     _provider = null;
     _warmUpFuture = null;
     _racingFuture = null;
+    _preferEncrypt = false;
     ModuleInitializer.reset();
   }
   
@@ -305,8 +314,11 @@ class XBoardConfig {
   static String? get encryptSubscriptionUrl => subscriptionInfo?.firstEncryptUrl?.url;
 
   /// 构建订阅URL（带token）
-  static String? buildSubscriptionUrl(String token, {bool preferEncrypt = true}) {
-    return subscriptionInfo?.buildSubscriptionUrl(token, forceEncrypt: preferEncrypt);
+  static String? buildSubscriptionUrl(String token, {bool? preferEncrypt}) {
+    return subscriptionInfo?.buildSubscriptionUrl(
+      token,
+      forceEncrypt: preferEncrypt ?? _preferEncrypt,
+    );
   }
 
   /// 并发竞速获取最快的订阅URL
@@ -318,8 +330,9 @@ class XBoardConfig {
   /// 返回最快响应成功的订阅URL，如果都失败则返回第一个URL
   static Future<String?> getFastestSubscriptionUrl(
     String token, {
-    bool preferEncrypt = true,
+    bool? preferEncrypt,
   }) async {
+    final shouldEncrypt = preferEncrypt ?? _preferEncrypt;
     final subInfo = subscriptionInfo;
     if (subInfo == null || subInfo.urls.isEmpty) return null;
     
@@ -327,7 +340,7 @@ class XBoardConfig {
     final List<String> subscriptionUrls = [];
     
     for (final urlInfo in subInfo.urls) {
-      final url = urlInfo.buildSubscriptionUrl(token, preferEncrypt: preferEncrypt);
+      final url = urlInfo.buildSubscriptionUrl(token, preferEncrypt: shouldEncrypt);
       if (url.isNotEmpty) {
         subscriptionUrls.add(url);
       }
