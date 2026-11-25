@@ -39,7 +39,7 @@ class ConfigFileLoader {
       final xboardConfig = configMap['xboard'] as Map<String, dynamic>? ?? {};
       
       // 提取配置参数
-      final provider = xboardConfig['provider'] as String? ?? 'Flclash';
+      final provider = xboardConfig['provider'] as String? ?? 'QNDXX';
       final remoteConfigJson = xboardConfig['remote_config'] as Map<String, dynamic>? ?? {};
       final subscriptionJson = xboardConfig['subscription'] as Map<String, dynamic>? ?? {};
       final logJson = xboardConfig['log'] as Map<String, dynamic>? ?? {};
@@ -119,7 +119,7 @@ class ConfigFileLoader {
     return LogSettings(
       enabled: json['enabled'] as bool? ?? true,
       level: json['level'] as String? ?? 'info',
-      prefix: json['prefix'] as String? ?? '[XBoard]',
+      prefix: json['prefix'] as String? ?? '[QNDXX]',
     );
   }
   
