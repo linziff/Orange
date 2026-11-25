@@ -111,18 +111,11 @@ class XBoardConfigAccessor {
     _lastError = null;
 
     try {
-      // 直接从远程获取最新配置
+      // Try sources in priority order. A source returning HTTP 200 with
+      // malformed or incompatible JSON must not prevent the backup source
+      // from supplying a valid XBoard configuration.
       final multiResult = await _remoteManager.fetchAllConfigs();
-      if (multiResult.hasSuccess && multiResult.firstSuccessfulData != null) {
-        final configData = _parser.extractConfigFromRemoteResult(multiResult.firstSuccessfulData!);
-        if (configData != null) {
-          await _processConfigData(configData, multiResult.firstSuccessfulSource ?? 'remote');
-          return;
-        }
-      }
-
-      // 远程获取失败
-      throw Exception('Remote config fetch failed');
+      await _processFirstValidResult(multiResult.results, 'remote');
 
     } catch (e) {
       _lastError = 'Configuration refresh failed: $e';
@@ -140,23 +133,12 @@ class XBoardConfigAccessor {
     _lastError = null;
 
     try {
-      final result = sourceName.toLowerCase() == 'remote'
-          ? await _remoteManager.fetchConfig()
-          : await _remoteManager.fetchFromSource(sourceName);
-
-      if (result.isSuccess && result.data != null) {
-        final configData =
-            _parser.extractConfigFromRemoteResult(result.data!);
-
-        if (configData != null) {
-          await _processConfigData(configData, result.source);
-        } else {
-          throw Exception('Invalid config data from $sourceName');
-        }
+      if (sourceName.toLowerCase() == 'remote') {
+        final multiResult = await _remoteManager.fetchAllConfigs();
+        await _processFirstValidResult(multiResult.results, 'remote');
       } else {
-        throw Exception(
-          'Failed to get config from $sourceName: ${result.error}',
-        );
+        final result = await _remoteManager.fetchFromSource(sourceName);
+        await _processFirstValidResult([result], sourceName);
       }
     } catch (e) {
       _lastError = 'Refresh from $sourceName failed: $e';
@@ -312,6 +294,41 @@ class XBoardConfigAccessor {
   }
 
   // ========== 内部方法 ==========
+
+  /// Parse and apply the first valid response from the ordered source list.
+  /// Invalid primary responses are skipped so configured backups can recover.
+  Future<void> _processFirstValidResult(
+    List<ConfigResult<Map<String, dynamic>>> results,
+    String sourceLabel,
+  ) async {
+    final errors = <String>[];
+    for (final result in results) {
+      if (!result.isSuccess || result.data == null) {
+        errors.add('${result.source}: ${result.error ?? 'fetch failed'}');
+        continue;
+      }
+
+      try {
+        final configData =
+            _parser.extractConfigFromRemoteResult(result.data!);
+        if (configData == null) {
+          throw Exception('Unsupported remote config structure');
+        }
+        await _processConfigData(configData, result.source);
+        return;
+      } catch (e) {
+        errors.add('${result.source}: $e');
+        _logger.warning(
+          'Configuration source ${result.source} was rejected; trying next source',
+          e,
+        );
+      }
+    }
+
+    throw Exception(
+      'No valid configuration from $sourceLabel sources: ${errors.join('; ')}',
+    );
+  }
 
   /// 处理配置数据
   Future<void> _processConfigData(Map<String, dynamic> configData, String source) async {
