@@ -63,15 +63,26 @@ class SubscriptionUrlInfo extends ConfigEntry {
     
     endpointsJson.forEach((key, value) {
       if (value is Map<String, dynamic>) {
-        endpointsMap[key] = SubscriptionEndpoint.fromJson(value);
+        // Existing QNDXX/XBoard remote configs identify endpoints by their
+        // version key (v1/v2) and may omit the optional isEncrypt property.
+        // Preserve an explicit backend value, otherwise infer v2 as encrypted.
+        final endpointJson = <String, dynamic>{
+          ...value,
+          'isEncrypt': value['isEncrypt'] ?? key.toLowerCase() == 'v2',
+        };
+        endpointsMap[key] = SubscriptionEndpoint.fromJson(endpointJson);
       }
     });
+
+    final inferredEncryptSupport =
+        endpointsMap.values.any((endpoint) => endpoint.isEncrypt);
 
     return SubscriptionUrlInfo(
       url: json['url'] as String? ?? '',
       description: json['description'] as String? ?? '',
       endpoints: endpointsMap,
-      supportEncrypt: json['supportEncrypt'] as bool? ?? false,
+      supportEncrypt:
+          json['supportEncrypt'] as bool? ?? inferredEncryptSupport,
     );
   }
 
