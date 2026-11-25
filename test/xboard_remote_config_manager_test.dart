@@ -69,6 +69,67 @@ void main() {
     });
   });
 
+  test('respects an explicit non-encrypted v2 endpoint flag', () {
+    final subscription = SubscriptionInfo.fromJson({
+      'enableEncrypt': true,
+      'urls': [
+        {
+          'url': 'https://panel.example',
+          'description': 'test panel',
+          'endpoints': {
+            'v1': {
+              'path': '/api/v1/subscription/{token}',
+              'requiresToken': true,
+              'method': 'GET',
+              'description': 'plain',
+              'isEncrypt': false,
+            },
+            'v2': {
+              'path': '/api/v2/subscription-encrypt/{token}',
+              'requiresToken': true,
+              'method': 'GET',
+              'description': 'backend explicitly marks this as plain',
+              'isEncrypt': false,
+            },
+          },
+        },
+      ],
+    });
+
+    expect(subscription.firstEncryptUrl, isNull);
+    expect(
+      subscription.buildSubscriptionUrl('token', forceEncrypt: true),
+      'https://panel.example/api/v1/subscription/token?flag=flclash',
+    );
+  });
+
+  test('does not invent an encrypted endpoint when none is configured', () {
+    final subscription = SubscriptionInfo.fromJson({
+      'enableEncrypt': true,
+      'urls': [
+        {
+          'url': 'https://panel.example',
+          'description': 'test panel',
+          'endpoints': {
+            'custom': {
+              'path': '/api/subscription/{token}',
+              'requiresToken': true,
+              'method': 'GET',
+              'description': 'plain custom endpoint',
+              'isEncrypt': false,
+            },
+          },
+        },
+      ],
+    });
+
+    expect(subscription.firstEncryptUrl, isNull);
+    expect(
+      subscription.buildSubscriptionUrl('token', forceEncrypt: true),
+      'https://panel.example/api/subscription/token?flag=flclash',
+    );
+  });
+
   group('RemoteConfigManager custom JSON sources', () {
     test('parses snake_case encryption key and configured priority', () {
       final source = RemoteSourceConfig.fromJson({
