@@ -174,20 +174,20 @@ class GiteeConfigSource implements ConfigSource {
   final String giteeUrl;
   final String encryptionKeyBase64;
   final Duration timeout;
+  @override
+  final int priority;
 
   GiteeConfigSource({
     IHttpClient? httpClient,
     required this.giteeUrl,
     required this.encryptionKeyBase64,
     Duration? timeout,
+    this.priority = 2,
   }) : _httpClient = httpClient ?? SimpleHttpClient(),
        timeout = timeout ?? const Duration(seconds: 10);
 
   @override
   String get sourceName => 'gitee';
-
-  @override
-  int get priority => 2;
 
   @override
   Future<ConfigResult<Map<String, dynamic>>> fetchConfig() async {
@@ -327,6 +327,7 @@ class RemoteConfigManager {
           giteeUrl: sourceConfig.url,
           encryptionKeyBase64: sourceConfig.encryptionKey!,
           timeout: sourceConfig.timeout ?? settings.timeout,
+          priority: sourceConfig.priority,
         ));
       } else {
         // 支持 primary / backup 等自定义 JSON 源名称，同时兼容 redirect。
@@ -397,8 +398,9 @@ class RemoteConfigManager {
 
   /// 从指定配置源获取配置
   Future<ConfigResult<Map<String, dynamic>>> fetchFromSource(String sourceName) async {
+    final normalizedName = sourceName.toLowerCase();
     final source = _configSources.firstWhere(
-      (s) => s.sourceName == sourceName,
+      (s) => s.sourceName.toLowerCase() == normalizedName,
       orElse: () => throw ArgumentError('Unknown source: $sourceName'),
     );
     
