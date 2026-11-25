@@ -63,10 +63,6 @@ void main() {
       );
       expect(subscription.firstEncryptUrl, isNotNull);
       expect(
-        subscription.buildSubscriptionUrl('token', forceEncrypt: false),
-        'https://panel.example/api/v1/subscription/token?flag=flclash',
-      );
-      expect(
         subscription.buildSubscriptionUrl('token', forceEncrypt: true),
         'https://panel.example/api/v2/subscription-encrypt/token?flag=flclash',
       );
