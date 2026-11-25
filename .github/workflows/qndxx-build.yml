@@ -119,6 +119,7 @@ jobs:
         run: |
           mkdir -p libclash/macos
           dart setup.dart macos --arch arm64 --out core
+          dart setup.dart macos --arch amd64 --out core
 
       - name: Build
         shell: bash
