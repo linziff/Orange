@@ -180,7 +180,10 @@ class SubscriptionInfo {
         ? firstEncryptUrl ?? urls.first
         : urls.first;
 
-    return targetUrl.buildSubscriptionUrl(token, preferEncrypt: enableEncrypt);
+    return targetUrl.buildSubscriptionUrl(
+      token,
+      preferEncrypt: forceEncrypt || enableEncrypt,
+    );
   }
 
   /// 转换为JSON
