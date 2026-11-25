@@ -133,32 +133,20 @@ class XBoardConfigAccessor {
 
 
 
-  /// 从指定源刷新配置
+  /// 从任意已注册的远程配置源刷新配置。
+  /// 旧版 redirect / gitee 名称及 primary / backup 等自定义名称均受支持。
   Future<void> refreshFromSource(String sourceName) async {
     await _updateState(ConfigAccessorState.loading);
     _lastError = null;
 
     try {
-      ConfigResult<Map<String, dynamic>> result;
-
-      switch (sourceName.toLowerCase()) {
-        case 'remote':
-          final multiResult = await _remoteManager.fetchAllConfigs();
-          result = multiResult.firstSuccessful ?? ConfigResult.failure('No successful remote source', 'remote');
-          break;
-        case 'redirect':
-          result = await _remoteManager.getRedirectConfig();
-          break;
-        case 'gitee':
-          result = await _remoteManager.getGiteeConfig();
-          break;
-        default:
-          result = ConfigResult.failure('Unknown source: $sourceName. Only remote sources (redirect, gitee) are supported.', sourceName);
-      }
+      final result = sourceName.toLowerCase() == 'remote'
+          ? await _remoteManager.fetchConfig()
+          : await _remoteManager.fetchFromSource(sourceName);
 
       if (result.isSuccess && result.data != null) {
-        // 提取配置数据（所有源都是远程源）
-        final configData = _parser.extractConfigFromRemoteResult(result.data!);
+        final configData =
+            _parser.extractConfigFromRemoteResult(result.data!);
 
         if (configData != null) {
           await _processConfigData(configData, result.source);
@@ -166,9 +154,10 @@ class XBoardConfigAccessor {
           throw Exception('Invalid config data from $sourceName');
         }
       } else {
-        throw Exception('Failed to get config from $sourceName: ${result.error}');
+        throw Exception(
+          'Failed to get config from $sourceName: ${result.error}',
+        );
       }
-
     } catch (e) {
       _lastError = 'Refresh from $sourceName failed: $e';
       await _updateState(ConfigAccessorState.error);
