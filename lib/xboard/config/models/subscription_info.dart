@@ -110,7 +110,12 @@ class SubscriptionUrlInfo extends ConfigEntry {
 
   /// 构建完整的订阅URL
   String buildSubscriptionUrl(String token, {bool preferEncrypt = true}) {
-    final endpoint = preferEncrypt ? encryptEndpoint : normalEndpoint;
+    // A preference is not a requirement: fall back to the available
+    // endpoint so callers racing each configured panel never probe a bare
+    // panel URL when that panel has only a normal subscription endpoint.
+    final endpoint = preferEncrypt
+        ? (encryptEndpoint ?? normalEndpoint)
+        : (normalEndpoint ?? encryptEndpoint);
     if (endpoint == null) return url;
 
     final path = endpoint.path.replaceAll('{token}', token);
