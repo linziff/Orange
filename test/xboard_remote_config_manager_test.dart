@@ -29,6 +29,7 @@ void main() {
 
     expect(parsed.panelType, 'xboard');
     expect(parsed.panels.currentProviderPanels.length, 2);
+    expect(parsed.toJson()['panelType'], 'xboard');
   });
 
   group('XBoard subscription endpoint preference', () {
