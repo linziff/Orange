@@ -149,7 +149,7 @@ class XBoardConfig {
   /// 
   /// 这是初始化模块的唯一方式
   static Future<void> initialize({
-    String provider = 'Flclash',
+    String provider = 'QNDXX',
     ConfigSettings? settings,
   }) async {
     final config = settings ?? ConfigSettings(currentProvider: provider);
