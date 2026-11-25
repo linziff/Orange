@@ -33,6 +33,23 @@ void main() {
     expect(parsed.toJson()['panelType'], 'xboard');
   });
 
+  test('keeps legacy online support entries without explicit endpoints compatible', () {
+    final parsed = ConfigurationParser().parseFromJson({
+      'panelType': 'xboard',
+      'panels': {
+        'QNDXX': [
+          {'url': 'https://panel.example', 'description': 'panel'},
+        ],
+      },
+      'onlineSupport': [
+        {'url': 'https://chat.example.com', 'description': 'legacy support'},
+      ],
+    }, 'QNDXX');
+
+    expect(parsed.onlineSupport.single.apiBaseUrl, 'https://chat.example.com');
+    expect(parsed.onlineSupport.single.wsBaseUrl, 'wss://chat.example.com');
+  });
+
   group('XBoard subscription endpoint preference', () {
     test('selects v1 when encryption is not preferred and v2 when preferred', () {
       final subscription = SubscriptionInfo.fromJson({
