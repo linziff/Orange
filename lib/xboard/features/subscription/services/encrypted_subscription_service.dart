@@ -425,7 +425,7 @@ class EncryptedSubscriptionService {
     bool enableRace = true,
   }) async {
     try {
-      _logger.info('[竞速增强] 获取加密订阅，token: ${token.substring(0, 8)}..., 竞速模式: $enableRace');
+      _logger.info('[竞速增强] 获取加密订阅，竞速模式: $enableRace');
 
       // 如果未启用竞速模式，回退到原始方法
       if (!enableRace) {
