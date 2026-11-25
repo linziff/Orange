@@ -164,6 +164,27 @@ void main() {
     expect(result.message, '未配置订阅解密密钥');
   });
 
+  test('parses snake_case remote retry and timeout settings', () {
+    final settings = RemoteConfigSettings.fromJson({
+      'sources': [
+        {
+          'name': 'backup',
+          'url': 'https://backup.example/config.json',
+          'timeout_seconds': 23,
+          'priority': 90,
+        },
+      ],
+      'max_retries': 5,
+      'timeout_seconds': 17,
+      'retry_delay_seconds': 4,
+    });
+
+    expect(settings.maxRetries, 5);
+    expect(settings.timeout, const Duration(seconds: 17));
+    expect(settings.retryDelay, const Duration(seconds: 4));
+    expect(settings.sources.single.timeout, const Duration(seconds: 23));
+  });
+
   group('RemoteConfigManager custom JSON sources', () {
     test('parses snake_case encryption key and configured priority', () {
       final source = RemoteSourceConfig.fromJson({
