@@ -404,12 +404,17 @@ class AppController {
     required String groupName,
     required String proxyName,
   }) async {
-    await clashCore.changeProxy(
+    final message = await clashCore.changeProxy(
       ChangeProxyParams(
         groupName: groupName,
         proxyName: proxyName,
       ),
     );
+    // The Go bridge returns selection errors as a message string. Do not
+    // silently treat a rejected proxy switch as a successful UI action.
+    if (message.isNotEmpty) {
+      throw message;
+    }
     if (_ref.read(appSettingProvider).closeConnections) {
       clashCore.closeConnections();
     }
