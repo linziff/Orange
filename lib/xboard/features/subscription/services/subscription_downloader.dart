@@ -211,7 +211,9 @@ class SubscriptionDownloader {
       // 创建 HttpClient
       client = HttpClient();
       client.connectionTimeout = _downloadTimeout;
-      client.badCertificateCallback = (cert, host, port) => true;
+      // Keep platform certificate validation enabled. Accepting every
+      // certificate makes encrypted subscription downloads vulnerable to
+      // interception and can conceal TLS configuration problems.
       
       // 如果使用代理，配置 SOCKS5 代理
       if (useProxy && proxyUrl != null) {
