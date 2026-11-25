@@ -17,13 +17,31 @@ class OnlineSupportInfo extends ConfigEntry {
 
   /// 从JSON创建在线客服信息
   factory OnlineSupportInfo.fromJson(Map<String, dynamic> json) {
+    final url = json['url'] as String? ?? '';
+    final apiBaseUrl = json['apiBaseUrl'] as String? ?? url;
+    final wsBaseUrl = json['wsBaseUrl'] as String? ?? _webSocketUrl(apiBaseUrl);
     return OnlineSupportInfo(
-      url: json['url'] as String? ?? '',
+      url: url,
       description: json['description'] as String? ?? '',
-      apiBaseUrl: json['apiBaseUrl'] as String? ?? '',
-      wsBaseUrl: json['wsBaseUrl'] as String? ?? '',
+      apiBaseUrl: apiBaseUrl,
+      wsBaseUrl: wsBaseUrl,
       metadata: json['metadata'] as Map<String, dynamic>?,
     );
+  }
+
+  /// Convert the legacy HTTP(S) URL into its matching WS(S) URL.
+  /// Invalid/empty values are retained as empty so normal validation can
+  /// report the configuration problem rather than inventing a host.
+  static String _webSocketUrl(String value) {
+    try {
+      final uri = Uri.parse(value);
+      if (uri.host.isEmpty) return '';
+      if (uri.scheme == 'https') return uri.replace(scheme: 'wss').toString();
+      if (uri.scheme == 'http') return uri.replace(scheme: 'ws').toString();
+    } catch (_) {
+      return '';
+    }
+    return '';
   }
 
   @override
