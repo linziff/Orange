@@ -12,12 +12,12 @@ xboard:
     sources:
       # 主配置源（重定向服务）
       - name: primary
-        url: https://img.toufq.com/speed/blob/main/url/config.json
+        url: https://toufq.com/speed/blob/main/config.json
         priority: 100
       
       # 备用配置源（Gitee加密源，可选）
       - name: backup
-        url: https://toufq.com/speed/blob/main/config.json
+        url: https://img.toufq.com/speed/blob/main/url/config.json
         priority: 90
 
 
@@ -35,7 +35,7 @@ xboard:
     # 是否优先使用加密订阅
     # true: 优先尝试加密订阅（自动启用竞速），失败后自动回退到普通订阅
     # false: 直接使用普通订阅（不使用竞速）
-    prefer_encrypt: false
+    prefer_encrypt: true
 
     # 订阅解密密钥
     # 用于解密加密订阅数据，需要与后端XBoard面板配置一致
