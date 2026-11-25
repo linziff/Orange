@@ -1,3 +1,4 @@
+import 'package:fl_clash/xboard/core/utils/xboard_decrypt_helper.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fl_clash/xboard/config/core/config_settings.dart';
 import 'package:fl_clash/xboard/config/fetchers/remote_config_manager.dart';
@@ -150,6 +151,17 @@ void main() {
       subscription.buildSubscriptionUrl('token', forceEncrypt: true),
       'https://panel.example/api/subscription/token?flag=flclash',
     );
+  });
+
+  test('returns a clear failure when no decrypt key is configured', () {
+    final result = XBoardDecryptHelper.smartDecrypt(
+      'not-a-real-encrypted-payload',
+      configuredKey: '',
+    );
+
+    expect(result.success, isFalse);
+    expect(result.keyUsed, isNull);
+    expect(result.message, '未配置订阅解密密钥');
   });
 
   group('RemoteConfigManager custom JSON sources', () {
