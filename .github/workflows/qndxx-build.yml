@@ -48,6 +48,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Setup Android SDK and pinned NDK
+        if: matrix.platform == 'Android'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        if: matrix.platform == 'Android'
+        shell: bash
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;28.0.13004108"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -82,8 +92,8 @@ jobs:
         shell: bash
         run: |
           SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          NDK_PATH="$(find "$SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          test -n "$NDK_PATH"
+          NDK_PATH="$SDK_ROOT/ndk/28.0.13004108"
+          test -d "$NDK_PATH"
           echo "ANDROID_NDK=$NDK_PATH" >> "$GITHUB_ENV"
 
       - name: Setup Rust
@@ -108,9 +118,15 @@ jobs:
         run: |
           mkdir -p libclash/windows
           dart setup.dart windows --arch amd64 --out core
-          TOKEN="$(sha256sum libclash/windows/amd64/FlClashCore.exe | awk '{print $1}')"
+          CORE_SOURCE="libclash/windows/amd64/FlClashCore.exe"
+          CORE_TARGET="libclash/windows/FlClashCore.exe"
+          test -f "$CORE_SOURCE"
+          cp "$CORE_SOURCE" "$CORE_TARGET"
+          TOKEN="$(sha256sum "$CORE_SOURCE" | awk '{print $1}')"
           TOKEN="$TOKEN" cargo build --release --features windows-service --manifest-path services/helper/Cargo.toml
           cp services/helper/target/release/helper.exe libclash/windows/FlClashHelperService.exe
+          test -f "$CORE_TARGET"
+          test -f libclash/windows/FlClashHelperService.exe
 
       - name: Build macOS core
         if: matrix.platform == 'macOS'
