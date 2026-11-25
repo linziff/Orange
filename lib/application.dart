@@ -67,31 +67,21 @@ class ApplicationState extends ConsumerState<Application> {
       }
     });
     
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      // 先完成本地认证状态恢复，不能把它放在 Clash Core / VPN 初始化之后。
-      // Android 上 Core 初始化、恢复配置或 VPN 状态可能耗时；若先 await，
-      // 路由会一直认为用户未初始化并停留在 /loading。
-      _performQuickAuthWithDomainService();
-
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final currentContext = globalState.navigatorKey.currentContext;
       if (currentContext != null) {
         globalState.appController = AppController(currentContext, ref);
       }
-
-      // Clash Core、VPN、偏好设置等启动任务放在认证恢复之后执行。
-      // 即使这些任务失败，也不能阻止登录页/主界面显示。
-      Future<void>(() async {
-        try {
-          await globalState.appController.init();
-          if (!mounted) return;
-          globalState.appController.initLink();
-          app?.initShortcuts();
-          _checkForUpdates();
-        } catch (e, stackTrace) {
-          debugPrint('[Application] 应用控制器初始化失败（不阻塞界面）: $e');
-          debugPrint('$stackTrace');
-        }
-      });
+      await globalState.appController.init();
+      globalState.appController.initLink();
+      app?.initShortcuts();
+      
+      // ✅ 等待初始化完成后再执行快速认证
+      _performQuickAuthWithDomainService();
+      
+      // 启动后检查更新
+      _checkForUpdates();
+      
     });
   }
 
@@ -102,9 +92,24 @@ class ApplicationState extends ConsumerState<Application> {
       try {
         debugPrint('[Application] 开始快速认证检查...');
         
-        // 快速认证只读取本地 Token 和缓存，不等待远程域名/SDK 初始化。
-        // 这样无论远程配置是否可达，用户都能先进入登录页或已有缓存的首页。
-        // SDK 相关网络验证由后台初始化流程继续完成。
+        // ✅ 等待初始化完成
+        final initState = ref.read(initializationProvider);
+        if (!initState.isReady) {
+          debugPrint('[Application] 等待初始化完成...');
+          // 等待初始化完成（最多 30 秒）
+          final deadline = DateTime.now().add(const Duration(seconds: 30));
+          while (!ref.read(initializationProvider).isReady && 
+                 DateTime.now().isBefore(deadline)) {
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+          
+          if (!ref.read(initializationProvider).isReady) {
+            debugPrint('[Application] 初始化超时，跳过快速认证');
+            return;
+          }
+        }
+        
+        // SDK 已初始化，执行快速认证
         final userNotifier = ref.read(xboardUserProvider.notifier);
         await userNotifier.quickAuth();
         
