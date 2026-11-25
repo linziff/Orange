@@ -44,14 +44,14 @@ jobs:
             arch: amd64
             os: macos-15-intel
             command: flutter build macos --release
-            artifact: build/macos/Build/Products/Release
+            artifact: QNDXX-macOS-amd64-5.2.1.zip
             artifact_name: QNDXX-macOS-x64-5.2.1
 
           - platform: macOS
             arch: arm64
             os: macos-15
             command: flutter build macos --release
-            artifact: build/macos/Build/Products/Release
+            artifact: QNDXX-macOS-arm64-5.2.1.zip
             artifact_name: QNDXX-macOS-arm64-5.2.1
 
     runs-on: ${{ matrix.os }}
@@ -169,18 +169,69 @@ jobs:
         shell: bash
         run: ${{ matrix.command }}
 
-      - name: Build Android split APKs
+      - name: Build and verify Android ABI APKs
         if: matrix.platform == 'Android'
         shell: bash
         run: |
+          set -euo pipefail
           APK_DIR="build/app/outputs/flutter-apk"
-          mkdir -p "$APK_DIR"
-          cp "$APK_DIR/app-release.apk" "$APK_DIR/QNDXX-Android-universal-5.2.1.apk"
+          STAGE="$RUNNER_TEMP/qndxx-abi-apks"
+          mkdir -p "$STAGE"
           flutter build apk --release --split-per-abi
-          cp "$APK_DIR/app-armeabi-v7a-release.apk" "$APK_DIR/QNDXX-Android-v7-armeabi-v7a-5.2.1.apk"
-          cp "$APK_DIR/app-arm64-v8a-release.apk" "$APK_DIR/QNDXX-Android-v8-arm64-v8a-5.2.1.apk"
-          cp "$APK_DIR/app-x86_64-release.apk" "$APK_DIR/QNDXX-Android-x86_64-5.2.1.apk"
-          ls -lh "$APK_DIR"/*.apk
+          for ABI in armeabi-v7a arm64-v8a x86_64; do
+            SRC="$APK_DIR/app-$ABI-release.apk"
+            test -s "$SRC"
+            cp "$SRC" "$STAGE/QNDXX-Android-$ABI-5.2.1.apk"
+            unzip -Z1 "$SRC" | grep -q "^lib/$ABI/"
+          done
+          flutter build apk --release
+          UNIVERSAL="$APK_DIR/app-release.apk"
+          test -s "$UNIVERSAL"
+          for ABI in armeabi-v7a arm64-v8a x86_64; do
+            unzip -Z1 "$UNIVERSAL" | grep -q "^lib/$ABI/"
+          done
+          cp "$UNIVERSAL" "$STAGE/QNDXX-Android-universal-5.2.1.apk"
+          rm -f "$APK_DIR"/*.apk
+          cp "$STAGE"/*.apk "$APK_DIR/"
+          echo "Verified APK contents:"
+          for APK in "$APK_DIR"/QNDXX-Android-*.apk; do
+            echo "---- $APK"
+            unzip -Z1 "$APK" | grep -E '^lib/(armeabi-v7a|arm64-v8a|x86_64)/' | cut -d/ -f2 | sort -u
+          done
+          test "$(find "$APK_DIR" -maxdepth 1 -name 'QNDXX-Android-*.apk' | wc -l)" -eq 4
+
+      - name: Add WebView2 Evergreen Bootstrapper
+        if: matrix.platform == 'Windows'
+        shell: pwsh
+        run: |
+          $dest = "${{ matrix.artifact }}\WebView2RuntimeInstaller.exe"
+          Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile $dest
+          if (!(Test-Path $dest) -or (Get-Item $dest).Length -lt 100000) { throw "WebView2 bootstrapper download failed" }
+          @"
+          QNDXX requires the Microsoft Edge WebView2 Runtime for embedded Crisp support.
+          If Crisp is blank or WebView initialization fails, run WebView2RuntimeInstaller.exe,
+          then restart QNDXX. The bootstrapper downloads the runtime matching this device.
+          "@ | Set-Content -Path "${{ matrix.artifact }}\WebView2-README.txt" -Encoding UTF8
+
+      - name: Verify macOS app and embedded core architecture
+        if: matrix.platform == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_DIR="build/macos/Build/Products/Release"
+          APP="$(find "$RELEASE_DIR" -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$APP" && test -d "$APP"
+          CORE="$(find "$APP" -type f -name FlClashCore -print -quit)"
+          test -n "$CORE" && test -x "$CORE"
+          EXPECTED="${{ matrix.arch == 'amd64' && 'x86_64' || 'arm64' }}"
+          echo "App: $APP"
+          echo "Runner architectures:"
+          lipo -archs "$APP/Contents/MacOS/"*
+          echo "Core architectures:"
+          lipo -archs "$CORE"
+          lipo -archs "$CORE" | grep -qw "$EXPECTED"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "QNDXX-macOS-${{ matrix.arch }}-5.2.1.zip"
+          test -s "QNDXX-macOS-${{ matrix.arch }}-5.2.1.zip"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
